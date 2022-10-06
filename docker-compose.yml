@@ -8,3 +8,10 @@ services:
       dockerfile: Alerting.Producer/Dockerfile
     extra_hosts:
     - "host.docker.internal:host-gateway"
+
+  alerting.consumer:
+    image: ${DOCKER_REGISTRY-}alertingconsumer
+    build:
+      context: .
+      dockerfile: Alerting.Consumer/Dockerfile
+
