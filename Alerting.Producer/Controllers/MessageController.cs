@@ -5,7 +5,7 @@ using Alerting.Infrastructure.Bus;
 
 namespace Alerting.Producer
 {
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class MessageController : ControllerBase
     {
@@ -16,6 +16,7 @@ namespace Alerting.Producer
         }
 
         [HttpGet]
+        [Route("Publish")]
         public async Task Publish()
         {
             Message lol = new Message() { lol = "lolkek", type = 2};
