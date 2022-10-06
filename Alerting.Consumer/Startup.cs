@@ -1,3 +1,4 @@
+using Alerting.Infrastructure.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -26,6 +27,14 @@ namespace Alerting.Consumer
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            services.AddRabbitConnection<AlertingConsumer>(connection =>
+            {
+                connection.Uri = Configuration["Bus:RabbitMq"];
+                connection.Username = Configuration["Bus:Username"];
+                connection.Password = Configuration["Bus:Password"];
+            },
+            "Message");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

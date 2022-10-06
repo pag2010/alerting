@@ -15,5 +15,10 @@
     <Folder Include="Controllers\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Alerting.Infrastructure\Alerting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Domain\Alerting.Domain.csproj" />
+  </ItemGroup>
+
 
 </Project>
