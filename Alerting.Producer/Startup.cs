@@ -10,6 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Alerting.Infrastructure.Bus;
+using MassTransit;
 
 namespace Alerting.Producer
 {
@@ -26,6 +28,20 @@ namespace Alerting.Producer
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            services.AddMassTransit(x =>
+            {
+                x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
+                {
+                    cfg.Host(new Uri(Configuration["Bus:RabbitMq"]), h =>
+                    {
+                        h.Username(Configuration["Bus:Username"]);
+                        h.Password(Configuration["Bus:Password"]);
+                    });
+                }));
+            });
+            services.AddHostedBus();
+            services.AddPublisher();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
