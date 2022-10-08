@@ -9,7 +9,7 @@ namespace Alerting.Consumer
     {
         public async Task Consume(ConsumeContext<Message> context)
         {
-            await Task.Run(() => Console.WriteLine($"{context.Message.lol} {context.Message.type}"));
+            await Task.Run(() => Console.WriteLine($"{context.Message.MessageValue} {context.Message.Type.Id}"));
         }
     }
 }

@@ -15,12 +15,11 @@ namespace Alerting.Producer
             _publisher = publisher;
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("Publish")]
-        public async Task Publish()
+        public async Task Publish(Message message)
         {
-            Message lol = new Message() { lol = "lolkek", type = 2};
-            await _publisher.Publish(lol);
+            await _publisher.Publish(message);
         }
     }
 }
