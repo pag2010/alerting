@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Domain", "Domain\A
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{DE84459B-631D-4337-921B-0EAE544AD8D5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alerting.Consumer", "Alerting.Consumer\Alerting.Consumer.csproj", "{FD4194A8-6E96-4ED0-878D-F34BBE5F00B9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Consumer", "Alerting.Consumer\Alerting.Consumer.csproj", "{FD4194A8-6E96-4ED0-878D-F34BBE5F00B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alerting.Controller", "Alerting.Controller\Alerting.Controller.csproj", "{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{FD4194A8-6E96-4ED0-878D-F34BBE5F00B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD4194A8-6E96-4ED0-878D-F34BBE5F00B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD4194A8-6E96-4ED0-878D-F34BBE5F00B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
