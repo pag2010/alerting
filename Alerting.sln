@@ -13,7 +13,7 @@ Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-co
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Consumer", "Alerting.Consumer\Alerting.Consumer.csproj", "{FD4194A8-6E96-4ED0-878D-F34BBE5F00B9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alerting.Controller", "Alerting.Controller\Alerting.Controller.csproj", "{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Controller", "Alerting.Controller\Alerting.Controller.csproj", "{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

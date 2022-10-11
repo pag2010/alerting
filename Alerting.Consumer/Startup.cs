@@ -1,4 +1,5 @@
 using Alerting.Infrastructure.Bus;
+using Alerting.Infrastructure.InfluxDB;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -35,6 +36,8 @@ namespace Alerting.Consumer
                 connection.Password = Configuration["Bus:Password"];
             },
             "Message");
+
+            services.AddSingleton<InfluxDBService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
