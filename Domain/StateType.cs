@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Alerting.Domain
 {
-    public class MessageType<T>
+    public class StateType<T>
     {
         public T Id { get; set; }
     }

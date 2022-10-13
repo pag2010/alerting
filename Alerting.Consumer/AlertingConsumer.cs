@@ -1,14 +1,14 @@
-﻿using Alerting.Domain;
-using Alerting.Infrastructure.InfluxDB;
+﻿using Alerting.Infrastructure.InfluxDB;
 using InfluxDB.Client.Api.Domain;
 using InfluxDB.Client.Writes;
 using MassTransit;
 using System;
 using System.Threading.Tasks;
+using State = Alerting.Domain.State;
 
 namespace Alerting.Consumer
 {
-    public class AlertingConsumer : IConsumer<Message>
+    public class AlertingConsumer : IConsumer<State>
     {
         private readonly InfluxDBService _service;
 
@@ -17,18 +17,19 @@ namespace Alerting.Consumer
             _service = service;
         }
 
-        public async Task Consume(ConsumeContext<Message> context)
+        public async Task Consume(ConsumeContext<State> context)
         {
-            _service.Write(write =>
-            {
-                var point = PointData.Measurement("message")
-                    .Tag("type", context.Message.MessageValue)
-                    .Field("value", context.Message.Type.Id)
-                    .Timestamp(DateTime.UtcNow, WritePrecision.Ns);
+            await Task.Run(() => 
+                _service.Write(write =>
+                {
+                    var point = PointData.Measurement("state")
+                        .Tag("sender", context.Message.Sender.ToString())
+                        .Field("type", context.Message.Type.Id)
+                        .Timestamp(DateTime.UtcNow, WritePrecision.Ns);
 
-                write.WritePoint(point, "state", "alerting");
-            });
-            await Task.Run(() => Console.WriteLine($"{context.Message.MessageValue} {context.Message.Type.Id}"));
+                    write.WritePoint(point, "state", "alerting");
+                })
+            );
         }
     }
 }

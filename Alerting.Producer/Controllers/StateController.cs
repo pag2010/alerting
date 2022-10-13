@@ -7,19 +7,19 @@ namespace Alerting.Producer
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class MessageController : ControllerBase
+    public class StateController : ControllerBase
     {
         private readonly IPublisher _publisher;
-        public MessageController(IPublisher publisher)
+        public StateController(IPublisher publisher)
         {
             _publisher = publisher;
         }
 
         [HttpPost]
         [Route("Publish")]
-        public async Task Publish(Message message)
+        public async Task Publish(State state)
         {
-            await _publisher.Publish(message);
+            await _publisher.Publish(state);
         }
     }
 }
