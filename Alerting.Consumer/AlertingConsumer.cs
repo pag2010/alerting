@@ -19,7 +19,7 @@ namespace Alerting.Consumer
 
         public async Task Consume(ConsumeContext<State> context)
         {
-            await Task.Run(() => 
+            var metricTask =  Task.Run(() => 
                 _service.Write(write =>
                 {
                     var point = PointData.Measurement("state")
@@ -30,6 +30,8 @@ namespace Alerting.Consumer
                     write.WritePoint(point, "state", "alerting");
                 })
             );
+
+            await metricTask;
         }
     }
 }
