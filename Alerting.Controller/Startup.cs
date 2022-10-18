@@ -1,4 +1,6 @@
+using Alerting.Infrastructure.Bus;
 using Alerting.Infrastructure.InfluxDB;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -7,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Redis.OM;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,9 +31,25 @@ namespace Alerting.Controller
         {
             services.AddControllers();
 
-            services.AddSingleton<InfluxDBService>();
-
             services.AddHostedService<BackgroundController>();
+
+            services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
+
+            services.AddMassTransit(x =>
+            {
+                x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
+                {
+                    cfg.Host(new Uri(Configuration["Bus:RabbitMq"]), h =>
+                    {
+                        h.Username(Configuration["Bus:Username"]);
+                        h.Password(Configuration["Bus:Password"]);
+                    });
+                }));
+            });
+            //services.AddHostedBus();
+            services.AddTransient<IPublisher, Publisher>();
+
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

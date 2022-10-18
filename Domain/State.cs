@@ -2,9 +2,12 @@
 
 namespace Alerting.Domain
 {
-    public class State
+    public class State : BasicState
     {
-        public Guid Sender { get; set; }
+        public State(Guid sender) : base(sender)
+        {
+        }
+
         public StateType<int> Type { get; set; }
     }
 }
