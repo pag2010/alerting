@@ -12,13 +12,13 @@ using State = Alerting.Domain.State;
 
 namespace Alerting.Consumer
 {
-    public class AlertingConsumer : IConsumer<State>
+    public class StateConsumer : IConsumer<State>
     {
         private readonly InfluxDBService _service;
         private readonly RedisConnectionProvider _provider;
         private readonly RedisCollection<LastState> _lastStates;
 
-        public AlertingConsumer(
+        public StateConsumer(
             InfluxDBService service,
             RedisConnectionProvider provider
             )

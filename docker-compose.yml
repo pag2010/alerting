@@ -22,3 +22,10 @@ services:
       context: .
       dockerfile: Alerting.Controller/Dockerfile
 
+
+  alerting.alerting:
+    image: ${DOCKER_REGISTRY-}alertingalerting
+    build:
+      context: .
+      dockerfile: Alerting.Alerting/Dockerfile
+

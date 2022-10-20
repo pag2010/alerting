@@ -29,8 +29,7 @@ namespace Alerting.Controller
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var state1 = _lastStates.FirstOrDefault();
-            DateTime alertingTime = DateTime.Now.AddMinutes(-1);
+            DateTime alertingTime = DateTime.Now.AddMinutes(-10);
             var alertingStates = _lastStates.ToList().Where(ls => ls.LastActive <= alertingTime);
             
             foreach (var state in alertingStates)
