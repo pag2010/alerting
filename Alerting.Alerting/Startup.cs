@@ -1,6 +1,8 @@
+using Alerting.Domain.DataBase;
 using Alerting.Infrastructure.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,6 +23,9 @@ namespace Alerting.Alerting
         {
             services.AddControllers();
 
+            services.AddDbContext<DataContext>(
+                options => options.UseNpgsql(Configuration["DB"]));
+
             services.AddRabbitConnection<AlertingConsumer>(connection =>
             {
                 connection.Uri = Configuration["Bus:RabbitMq"];
@@ -28,6 +33,7 @@ namespace Alerting.Alerting
                 connection.Password = Configuration["Bus:Password"];
             },
             "AlertingState");
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
