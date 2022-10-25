@@ -23,8 +23,8 @@ namespace Alerting.Alerting
         {
             services.AddControllers();
 
-            services.AddDbContext<DataContext>(
-                options => options.UseNpgsql(Configuration["DB"]));
+            //services.AddDbContext<DataContext>(
+            //    options => options.UseNpgsql(Configuration["DB"]));
 
             services.AddRabbitConnection<AlertingConsumer>(connection =>
             {

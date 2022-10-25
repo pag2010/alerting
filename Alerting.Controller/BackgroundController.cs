@@ -15,26 +15,40 @@ namespace Alerting.Controller
 {
     public class BackgroundController : BackgroundService
     {
-        private readonly RedisCollection<LastState> _lastStates;
+        private readonly RedisCollection<ClientStateCache> _clientStates;
         private readonly IPublisher _publisher;
         public BackgroundController(
             RedisConnectionProvider provider,
             IPublisher publisher)
         {
-            _lastStates = 
-                (RedisCollection<LastState>)provider.RedisCollection<LastState>();
+            _clientStates = 
+                (RedisCollection<ClientStateCache>)provider.RedisCollection<ClientStateCache>();
             
             _publisher = publisher;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            DateTime alertingTime = DateTime.Now.AddMinutes(-10);
-            var alertingStates = _lastStates.ToList().Where(ls => ls.LastActive <= alertingTime);
-            
-            foreach (var state in alertingStates)
+            SendAlertsAsync(stoppingToken);
+
+            return Task.CompletedTask;
+        }
+
+        private async Task SendAlertsAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await _publisher.Publish(new AlertingState(state.Sender));
+                DateTime alertingTime = DateTime.Now;
+                var alertingStates = _clientStates.ToList()
+                    .Where(ls => ls.LastActive <= alertingTime.AddSeconds(-60)
+                              && ls.LastAlerted <= alertingTime.AddMinutes(15));
+
+                foreach (var state in alertingStates)
+                {
+                    await _publisher.Publish(new AlertingState(state.ClientId));
+                    state.LastAlerted = DateTime.Now;
+                    await _clientStates.UpdateAsync(state);
+                }
             }
         }
     }

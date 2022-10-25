@@ -39,11 +39,18 @@ namespace Alerting.Consumer
                 connection.Password = Configuration["Bus:Password"];
             },
             "State");
+            services.AddRabbitConnection<RegistrationConsumer>(connection =>
+            {
+                connection.Uri = Configuration["Bus:RabbitMq"];
+                connection.Username = Configuration["Bus:Username"];
+                connection.Password = Configuration["Bus:Password"];
+            },
+            "AlertRuleRegistration");
 
             services.AddSingleton<InfluxDBService>();
 
             services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
-            services.AddHostedService<IndexCreationService<LastState>>();
+            services.AddHostedService<IndexCreationService<ClientStateCache>>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -16,7 +16,7 @@ namespace Alerting.Consumer
     {
         private readonly InfluxDBService _service;
         private readonly RedisConnectionProvider _provider;
-        private readonly RedisCollection<LastState> _lastStates;
+        private readonly RedisCollection<ClientStateCache> _clientStates;
 
         public StateConsumer(
             InfluxDBService service,
@@ -25,8 +25,8 @@ namespace Alerting.Consumer
         {
             _service = service;
             _provider = provider;
-            _lastStates = 
-                (RedisCollection<LastState>)provider.RedisCollection<LastState>();
+            _clientStates = 
+                (RedisCollection<ClientStateCache>)provider.RedisCollection<ClientStateCache>();
         }
 
         public async Task Consume(ConsumeContext<State> context)
@@ -55,8 +55,8 @@ namespace Alerting.Consumer
         {
             bool updated = false;
 
-            foreach (var state in _lastStates
-                .Where(x => x.Sender == context.Message.Sender))
+            foreach (var state in _clientStates
+                .Where(x => x.ClientId == context.Message.Sender))
             {
                 state.LastActive = DateTime.Now;
                 updated = true;
@@ -64,14 +64,14 @@ namespace Alerting.Consumer
 
             if (!updated)
             {
-                await _lastStates.InsertAsync(new LastState
+                await _clientStates.InsertAsync(new ClientStateCache
                 { 
-                    Sender = context.Message.Sender,
+                    ClientId = context.Message.Sender,
                     LastActive = DateTime.Now
                 });
             }
 
-            await _lastStates.SaveAsync();
+            await _clientStates.SaveAsync();
         }
     }
 }
