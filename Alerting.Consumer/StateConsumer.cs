@@ -44,7 +44,7 @@ namespace Alerting.Consumer
                     var point = PointData.Measurement("state")
                         .Tag("sender", context.Message.Sender.ToString())
                         .Field("type", context.Message.Type.Id)
-                        .Timestamp(DateTime.UtcNow, WritePrecision.Ns);
+                        .Timestamp(DateTime.Now, WritePrecision.Ns);
 
                     write.WritePoint(point, "state", "alerting");
                 })
@@ -53,25 +53,23 @@ namespace Alerting.Consumer
 
         private async Task AddOrUpdateCache(ConsumeContext<State> context)
         {
-            bool updated = false;
+            var state = context.Message;
+            var existingState = await _clientStates.SingleOrDefaultAsync(cs=>
+                cs.ClientId == state.Sender);
 
-            foreach (var state in _clientStates
-                .Where(x => x.ClientId == context.Message.Sender))
-            {
-                state.LastActive = DateTime.Now;
-                updated = true;
-            }
-
-            if (!updated)
+            if (existingState == null)
             {
                 await _clientStates.InsertAsync(new ClientStateCache
-                { 
+                {
                     ClientId = context.Message.Sender,
                     LastActive = DateTime.Now
                 });
             }
-
-            await _clientStates.SaveAsync();
+            else
+            {
+                existingState.LastActive = DateTime.Now;
+                await _clientStates.UpdateAsync(existingState);
+            } 
         }
     }
 }
