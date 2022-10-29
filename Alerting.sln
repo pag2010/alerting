@@ -15,7 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Consumer", "Alerti
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Controller", "Alerting.Controller\Alerting.Controller.csproj", "{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alerting.Alerting", "Alerting.Alerting\Alerting.Alerting.csproj", "{52FF6CF8-717F-4D45-A9D3-B8253AE373F0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Alerting", "Alerting.Alerting\Alerting.Alerting.csproj", "{52FF6CF8-717F-4D45-A9D3-B8253AE373F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alerting.AlertingRuleConsumer", "Alerting.AlertingRuleConsumer\Alerting.AlertingRuleConsumer.csproj", "{AA12BB0F-98A3-43F1-8388-ACE20CFA77E9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{52FF6CF8-717F-4D45-A9D3-B8253AE373F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{52FF6CF8-717F-4D45-A9D3-B8253AE373F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52FF6CF8-717F-4D45-A9D3-B8253AE373F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA12BB0F-98A3-43F1-8388-ACE20CFA77E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA12BB0F-98A3-43F1-8388-ACE20CFA77E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA12BB0F-98A3-43F1-8388-ACE20CFA77E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA12BB0F-98A3-43F1-8388-ACE20CFA77E9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

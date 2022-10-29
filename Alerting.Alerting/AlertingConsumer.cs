@@ -14,7 +14,7 @@ namespace Alerting.Alerting
             ITelegramBotClient botClient = 
                 new TelegramBotClient(context.Message.TelegramBotToken);
 
-            return botClient.SendTextMessageAsync(new ChatId(context.Message.ChatId), "Привет-привет!!");
+            return botClient.SendTextMessageAsync(new ChatId(context.Message.ChatId), $"{context.Message.Sender} : недоступен");
         }
     }
 }

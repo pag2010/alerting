@@ -1,22 +1,14 @@
 using Alerting.Domain.Redis;
 using Alerting.Infrastructure.Bus;
-using Alerting.Infrastructure.InfluxDB;
 using Alerting.Infrastructure.Redis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Redis.OM;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace Alerting.Consumer
+namespace Alerting.AlertingRuleConsumer
 {
     public class Startup
     {
@@ -32,18 +24,16 @@ namespace Alerting.Consumer
         {
             services.AddControllers();
 
-            services.AddRabbitConnection<StateConsumer>(connection =>
+            services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
+            services.AddHostedService<IndexCreationService<ClientAlertRuleCache>>();
+
+            services.AddRabbitConnection<AlertingRuleConsumer>(connection =>
             {
                 connection.Uri = Configuration["Bus:RabbitMq"];
                 connection.Username = Configuration["Bus:Username"];
                 connection.Password = Configuration["Bus:Password"];
             },
-            "State");
-            
-            services.AddSingleton<InfluxDBService>();
-
-            services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
-            services.AddHostedService<IndexCreationService<ClientStateCache>>();
+           "AlertRuleRegistration");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

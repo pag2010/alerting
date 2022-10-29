@@ -29,3 +29,10 @@ services:
       context: .
       dockerfile: Alerting.Alerting/Dockerfile
 
+
+  alerting.alertingruleconsumer:
+    image: ${DOCKER_REGISTRY-}alertingalertingruleconsumer
+    build:
+      context: .
+      dockerfile: Alerting.AlertingRuleConsumer/Dockerfile
+

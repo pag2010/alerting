@@ -33,7 +33,7 @@ namespace Alerting.Consumer
         {
             await AddOrUpdateCache(context);
 
-            await SaveMetrics(context);
+            //await SaveMetrics(context);
         }
 
         private Task SaveMetrics(ConsumeContext<State> context)
