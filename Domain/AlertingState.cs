@@ -10,13 +10,16 @@ namespace Alerting.Domain
         public AlertingState(
             Guid sender, 
             string telegramBotToken,
-            string chatId) : base(sender)
+            string chatId,
+            DateTime lastActive) : base(sender)
         {
             TelegramBotToken = telegramBotToken;
             ChatId = chatId;
+            LastActive = lastActive;
         }
 
         public string TelegramBotToken { get; set; }
         public string ChatId { get; set; }
+        public DateTime LastActive { get; set; }
     }
 }

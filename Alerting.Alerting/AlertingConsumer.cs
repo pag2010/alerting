@@ -11,10 +11,14 @@ namespace Alerting.Alerting
     {
         public Task Consume(ConsumeContext<AlertingState> context)
         {
+            var alert = context.Message;
             ITelegramBotClient botClient = 
-                new TelegramBotClient(context.Message.TelegramBotToken);
+                new TelegramBotClient(alert.TelegramBotToken);
 
-            return botClient.SendTextMessageAsync(new ChatId(context.Message.ChatId), $"{context.Message.Sender} : недоступен");
+            return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
+                $"{alert.Sender} :" + Environment.NewLine +
+                 "недоступен с " +
+                 $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
         }
     }
 }

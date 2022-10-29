@@ -59,7 +59,8 @@ namespace Alerting.Controller
                         new AlertingState(
                             client.State.ClientId,
                             client.Rule.TelegramBotToken,
-                            client.Rule.ChatId)
+                            client.Rule.ChatId,
+                            client.State.LastActive)
                     );
                     client.State.LastAlerted = DateTime.Now;
                     await _clientStates.UpdateAsync(client.State);
