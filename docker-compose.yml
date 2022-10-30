@@ -36,3 +36,10 @@ services:
       context: .
       dockerfile: Alerting.AlertingRuleConsumer/Dockerfile
 
+
+  alerting.clientregistrationconsumer:
+    image: ${DOCKER_REGISTRY-}alertingclientregistrationconsumer
+    build:
+      context: .
+      dockerfile: Alerting.ClientRegistrationConsumer/Dockerfile
+
