@@ -35,5 +35,15 @@ namespace Alerting.Producer.Controllers
 
             return guid;
         }
+
+        [HttpPost]
+        [Route("Unregister")]
+        public async Task Unregister(ClientUnregisterModel model)
+        {
+            await _publisher.Publish(new ClientUnregister
+            {
+                Id = model.Id,
+            });
+        }
     }
 }

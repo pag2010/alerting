@@ -1,6 +1,8 @@
+using Alerting.Domain;
 using Alerting.Domain.Redis;
 using Alerting.Infrastructure.Bus;
 using Alerting.Infrastructure.Redis;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -34,13 +36,36 @@ namespace Alerting.ClientRegistrationConsumer
             services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
             services.AddHostedService<IndexCreationService<ClientCache>>();
 
-            services.AddRabbitConnection<ClientRegistrationConsumer>(connection =>
+            var connection = new RabbitConnection();
+            connection.Uri = Configuration["Bus:RabbitMq"];
+            connection.Username = Configuration["Bus:Username"];
+            connection.Password = Configuration["Bus:Password"];
+            services.AddMassTransit(x =>
             {
-                connection.Uri = Configuration["Bus:RabbitMq"];
-                connection.Username = Configuration["Bus:Username"];
-                connection.Password = Configuration["Bus:Password"];
-            },
-           "ClientRegistration");
+                x.AddConsumer<ClientRegistrationConsumer>();
+                x.AddConsumer<ClientUnregisterConsumer>();
+
+                x.AddBus(provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
+                {
+                    cfg.Host(new Uri(connection.Uri), h =>
+                    {
+                        h.Username(connection.Username);
+                        h.Password(connection.Password);
+                    });
+
+                    cfg.ReceiveEndpoint("ClientRegistration",
+                        e => e.ConfigureConsumer<ClientRegistrationConsumer>(provider));
+                    cfg.ReceiveEndpoint("ClientUnregister",
+                        e => e.ConfigureConsumer<ClientUnregisterConsumer>(provider));
+                }));
+            });
+            // services.AddRabbitConnection<ClientRegistrationConsumer>(connection =>
+            // {
+            //     connection.Uri = Configuration["Bus:RabbitMq"];
+            //     connection.Username = Configuration["Bus:Username"];
+            //     connection.Password = Configuration["Bus:Password"];
+            // },
+            //"ClientRegistration");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

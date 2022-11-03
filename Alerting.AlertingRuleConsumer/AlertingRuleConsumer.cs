@@ -4,6 +4,9 @@ using Redis.OM.Searching;
 using Redis.OM;
 using System.Threading.Tasks;
 using Alerting.Domain;
+using System.Threading;
+using System.Security.Cryptography.Xml;
+using System;
 
 namespace Alerting.AlertingRuleConsumer
 {
@@ -11,27 +14,35 @@ namespace Alerting.AlertingRuleConsumer
     {
         private readonly RedisConnectionProvider _provider;
         private readonly RedisCollection<ClientAlertRuleCache> _clientAlerts;
+        private readonly RedisCollection<ClientCache> _clients;
 
         public AlertingRuleConsumer(RedisConnectionProvider provider)
         {
             _provider = provider;
             _clientAlerts =
                 (RedisCollection<ClientAlertRuleCache>)provider.RedisCollection<ClientAlertRuleCache>();
+            _clients =
+                (RedisCollection<ClientCache>)provider.RedisCollection<ClientCache>();
         }
 
         public async Task Consume(ConsumeContext<ClientRegistration> context)
         {
-            var registeredClient = await _clientAlerts.SingleOrDefaultAsync(ca => ca.ClientId == context.Message.Id);
-            if (registeredClient == null)
+            var registeredClient = await _clients.SingleOrDefaultAsync(ca => ca.Id == context.Message.Id);
+            if (registeredClient != null)
             {
                 await _clientAlerts.InsertAsync(new ClientAlertRuleCache
                 {
+                    Id = Guid.NewGuid(),
                     ClientId = context.Message.Id,
                     AlertIntervalSeconds = context.Message.AlertIntervalSeconds,
                     ChatId = context.Message.ChatId,
                     TelegramBotToken = context.Message.TelegramBotToken,
                     WaitingSeconds = context.Message.WaitingSeconds
                 });
+            }
+            else
+            {
+                throw new Exception("Не найдено зарегистрированного клиента");
             }
         }
     }

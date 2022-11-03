@@ -9,6 +9,8 @@ namespace Alerting.Domain.Redis
     public class ClientAlertRuleCache
     {
         [RedisIdField]
+        public Guid Id { get; set; }
+
         [Indexed]
         public Guid ClientId { get; set; }
         public int WaitingSeconds { get; set; } = 3600;

@@ -25,6 +25,8 @@ namespace Alerting.Infrastructure.Bus
                         h.Password(connection.Password);
                     });
 
+                    cfg.UseMessageRetry(r => r.Interval(5, TimeSpan.FromSeconds(1)));
+
                     cfg.ReceiveEndpoint(queueName,
                         e => e.ConfigureConsumer<T>(provider));
                 }));
