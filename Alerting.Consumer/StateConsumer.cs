@@ -4,6 +4,7 @@ using InfluxDB.Client.Api.Domain;
 using InfluxDB.Client.Writes;
 using MassTransit;
 using NodaTime;
+using Alerting.Domain.Enums;
 using Redis.OM;
 using Redis.OM.Searching;
 using System;
@@ -62,7 +63,8 @@ namespace Alerting.Consumer
                 await _clientStates.InsertAsync(new ClientStateCache
                 {
                     ClientId = context.Message.Sender,
-                    LastActive = DateTime.Now
+                    LastActive = DateTime.Now,
+                    StateType = StateTypeInfo.Alerting
                 });
             }
             else

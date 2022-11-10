@@ -1,7 +1,7 @@
 ﻿using Alerting.Domain;
+using Alerting.Domain.State;
 using Alerting.Infrastructure.Bus;
 using Alerting.Producer.Models;
-using MassTransit.SagaStateMachine;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -32,6 +32,8 @@ namespace Alerting.Producer.Controllers
                 WaitingSeconds = model.WaitingSeconds,
                 Id = guid
             });
+
+            await _publisher.Publish(new State(guid));
 
             return guid;
         }

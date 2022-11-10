@@ -17,8 +17,9 @@ namespace Alerting.Producer
 
         [HttpPost]
         [Route("Publish")]
-        public async Task Publish(State state)
+        public async Task Publish(BasicState senderState)
         {
+            var state = new State(senderState.Sender);
             await _publisher.Publish(state);
         }
     }
