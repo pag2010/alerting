@@ -1,13 +1,11 @@
 ﻿using System;
 
-namespace Alerting.Domain
+namespace Alerting.Domain.State
 {
     public class State : BasicState
     {
         public State(Guid sender) : base(sender)
         {
         }
-
-        public StateType<int> Type { get; set; }
     }
 }

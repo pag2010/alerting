@@ -1,4 +1,5 @@
-﻿using Redis.OM.Modeling;
+﻿using Alerting.Domain.Enums;
+using Redis.OM.Modeling;
 using System;
 
 namespace Alerting.Domain.Redis
@@ -15,5 +16,7 @@ namespace Alerting.Domain.Redis
 
         [Indexed]
         public DateTime LastAlerted { get; set; }
+
+        public StateTypeInfo StateType {get;set;}
     }
 }

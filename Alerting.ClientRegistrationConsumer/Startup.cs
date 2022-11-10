@@ -59,13 +59,6 @@ namespace Alerting.ClientRegistrationConsumer
                         e => e.ConfigureConsumer<ClientUnregisterConsumer>(provider));
                 }));
             });
-            // services.AddRabbitConnection<ClientRegistrationConsumer>(connection =>
-            // {
-            //     connection.Uri = Configuration["Bus:RabbitMq"];
-            //     connection.Username = Configuration["Bus:Username"];
-            //     connection.Password = Configuration["Bus:Password"];
-            // },
-            //"ClientRegistration");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -76,7 +69,7 @@ namespace Alerting.ClientRegistrationConsumer
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseRouting();
 

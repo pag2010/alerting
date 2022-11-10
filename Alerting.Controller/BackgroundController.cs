@@ -9,10 +9,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Alerting.Domain.Redis;
 using Alerting.Infrastructure.Bus;
-using Alerting.Domain;
-using Alerting.Domain.DataBase;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Alerting.Domain.State;
+using Alerting.Domain.Enums;
 
 namespace Alerting.Controller
 {
@@ -20,6 +20,7 @@ namespace Alerting.Controller
     {
         private readonly RedisCollection<ClientStateCache> _clientStates;
         private readonly RedisCollection<ClientAlertRuleCache> _clientAlertRules;
+        private readonly RedisCollection<ClientCache> _clients;
         private readonly IPublisher _publisher;
         private readonly ILogger<BackgroundController> _logger;
 
@@ -32,6 +33,8 @@ namespace Alerting.Controller
                 (RedisCollection<ClientStateCache>)provider.RedisCollection<ClientStateCache>();
             _clientAlertRules =
                 (RedisCollection<ClientAlertRuleCache>)provider.RedisCollection<ClientAlertRuleCache>();
+            _clients =
+                (RedisCollection<ClientCache>)provider.RedisCollection<ClientCache>();
 
             _publisher = publisher;
             _logger = logger;
@@ -39,45 +42,96 @@ namespace Alerting.Controller
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            SendAlertsAsync(stoppingToken);
+            SendAsync(stoppingToken);
 
             return Task.CompletedTask;
         }
 
-        private async Task SendAlertsAsync(CancellationToken stoppingToken)
+        private async Task SendAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
-                {
-                    DateTime alertingTime = DateTime.Now;
-                    var clientQuery = from s in _clientStates.ToList()
-                                      join r in _clientAlertRules.ToList() on s.ClientId equals r.ClientId
-                                      where s.LastActive <= alertingTime.AddSeconds(-r.WaitingSeconds) &&
-                                            s.LastAlerted <= alertingTime.AddSeconds(-r.AlertIntervalSeconds)
-                                      select new
-                                      {
-                                          State = s,
-                                          Rule = r
-                                      };
+                await SendOKAsync();
+                await SendAlertsAsync();
+            }
+        }
 
-                    foreach (var client in clientQuery)
-                    {
-                        await _publisher.Publish(
-                            new AlertingState(
-                                client.State.ClientId,
-                                client.Rule.TelegramBotToken,
-                                client.Rule.ChatId,
-                                client.State.LastActive)
-                        );
-                        client.State.LastAlerted = DateTime.Now;
-                        await _clientStates.UpdateAsync(client.State);
-                    }
-                }
-                catch (Exception ex)
+        private async Task SendAlertsAsync()
+        {
+            try
+            {
+                DateTime alertingTime = DateTime.Now;
+                var clientQuery = from s in _clientStates.ToList()
+                                  join r in _clientAlertRules.ToList() on s.ClientId equals r.ClientId
+                                  join c in _clients.ToList() on s.ClientId equals c.Id
+                                  where s.LastActive <= alertingTime.AddSeconds(-r.WaitingSeconds) &&
+                                        s.LastAlerted <= alertingTime.AddSeconds(-r.AlertIntervalSeconds)
+                                  select new
+                                  {
+                                      State = s,
+                                      Rule = r,
+                                      Name = c.Name
+                                  };
+
+                foreach (var client in clientQuery)
                 {
-                    _logger.LogError(new EventId(), ex, "Ошибка при контроле за состоянием");
+                    await _publisher.Publish(
+                        new AlertingState(
+                            client.State.ClientId,
+                            client.Rule.TelegramBotToken,
+                            client.Rule.ChatId,
+                            client.State.LastActive,
+                            AlertingTypeInfo.Alert,
+                            client.Name)
+                    );
+                    client.State.LastAlerted = DateTime.Now;
+                    client.State.StateType = StateTypeInfo.Alerting;
+                    await _clientStates.UpdateAsync(client.State);
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(new EventId(), ex, "Ошибка при контроле за состоянием");
+            }
+            
+        }
+
+        private async Task SendOKAsync()
+        {
+            try
+            {
+                DateTime now = DateTime.Now;
+                var clientQuery = from s in _clientStates.ToList()
+                                  join r in _clientAlertRules.ToList() on s.ClientId equals r.ClientId
+                                  join c in _clients.ToList() on s.ClientId equals c.Id
+                                  where s.LastActive > s.LastAlerted &&
+                                        s.StateType == StateTypeInfo.Alerting
+                                  select new
+                                  {
+                                      State = s,
+                                      Rule = r,
+                                      c.Name
+                                  };
+
+                foreach (var client in clientQuery)
+                {
+                    await _publisher.Publish(
+                        new AlertingState(
+                            client.State.ClientId,
+                            client.Rule.TelegramBotToken,
+                            client.Rule.ChatId,
+                            client.State.LastActive,
+                            AlertingTypeInfo.OK,
+                            client.Name)
+                    );
+
+                    client.State.StateType = StateTypeInfo.OK;
+                    await _clientStates.UpdateAsync(client.State);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(new EventId(), ex, "Ошибка при контроле за состоянием");
             }
         }
     }

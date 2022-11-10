@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Alerting.Domain
+namespace Alerting.Domain.State
 {
     public class BasicState
     {

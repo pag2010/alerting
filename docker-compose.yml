@@ -8,12 +8,16 @@ services:
       dockerfile: Alerting.Producer/Dockerfile
     extra_hosts:
     - "host.docker.internal:host-gateway"
+    ports:
+      - "5000:80"
 
   alerting.consumer:
     image: ${DOCKER_REGISTRY-}alertingconsumer
     build:
       context: .
       dockerfile: Alerting.Consumer/Dockerfile
+    ports:
+      - "5001:80"
 
 
   alerting.controller:
@@ -21,13 +25,16 @@ services:
     build:
       context: .
       dockerfile: Alerting.Controller/Dockerfile
-
+    ports:
+      - "5002:80"
 
   alerting.alerting:
     image: ${DOCKER_REGISTRY-}alertingalerting
     build:
       context: .
       dockerfile: Alerting.Alerting/Dockerfile
+    ports:
+      - "5003:80"
 
 
   alerting.alertingruleconsumer:
@@ -35,6 +42,8 @@ services:
     build:
       context: .
       dockerfile: Alerting.AlertingRuleConsumer/Dockerfile
+    ports:
+      - "5004:80"
 
 
   alerting.clientregistrationconsumer:
@@ -42,4 +51,6 @@ services:
     build:
       context: .
       dockerfile: Alerting.ClientRegistrationConsumer/Dockerfile
+    ports:
+      - "5005:80"
 

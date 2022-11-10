@@ -1,4 +1,5 @@
-﻿using Alerting.Domain;
+﻿using Alerting.Domain.State;
+using Alerting.Domain.Enums;
 using MassTransit;
 using System;
 using System.Threading.Tasks;
@@ -15,10 +16,20 @@ namespace Alerting.Alerting
             ITelegramBotClient botClient = 
                 new TelegramBotClient(alert.TelegramBotToken);
 
-            return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
-                $"{alert.Sender} :" + Environment.NewLine +
-                 "недоступен с " +
-                 $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
+            if (alert.AlertingType == AlertingTypeInfo.Alert)
+            {
+                return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
+                    $"{alert.Name} :" + Environment.NewLine +
+                     "недоступен с " +
+                     $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
+            }
+            else
+            {
+                return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
+                    $"{alert.Name} :" + Environment.NewLine +
+                     "OK " +
+                     $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
+            }
         }
     }
 }

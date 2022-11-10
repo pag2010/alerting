@@ -1,7 +1,7 @@
-﻿using Alerting.Domain;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using Alerting.Infrastructure.Bus;
+using Alerting.Domain.State;
 
 namespace Alerting.Producer
 {

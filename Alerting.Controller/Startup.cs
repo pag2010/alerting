@@ -1,5 +1,7 @@
+using Alerting.Domain.Redis;
 using Alerting.Infrastructure.Bus;
 using Alerting.Infrastructure.InfluxDB;
+using Alerting.Infrastructure.Redis;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -34,6 +36,7 @@ namespace Alerting.Controller
             services.AddHostedService<BackgroundController>();
 
             services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
+            services.AddHostedService<IndexCreationService<ClientCache>>();
 
             services.AddMassTransit(x =>
             {
@@ -60,7 +63,7 @@ namespace Alerting.Controller
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseRouting();
 

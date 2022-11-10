@@ -8,7 +8,7 @@ using Redis.OM;
 using Redis.OM.Searching;
 using System;
 using System.Threading.Tasks;
-using State = Alerting.Domain.State;
+using State = Alerting.Domain.State.State;
 
 namespace Alerting.Consumer
 {
@@ -43,7 +43,7 @@ namespace Alerting.Consumer
                 {
                     var point = PointData.Measurement("state")
                         .Tag("sender", context.Message.Sender.ToString())
-                        .Field("type", context.Message.Type.Id)
+                        .Field("value", 1)
                         .Timestamp(DateTime.Now, WritePrecision.Ns);
 
                     write.WritePoint(point, "state", "alerting");
