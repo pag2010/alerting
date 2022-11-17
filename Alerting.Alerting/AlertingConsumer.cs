@@ -3,32 +3,61 @@ using Alerting.Domain.Enums;
 using MassTransit;
 using System;
 using System.Threading.Tasks;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using Telegram.Bots;
+using Telegram.Bots.Requests;
+using Telegram.Bots.Types;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Alerting.Alerting
 {
     public class AlertingConsumer : IConsumer<AlertingState>
     {
-        public Task Consume(ConsumeContext<AlertingState> context)
+        private readonly IBotClient _botClient;
+        private readonly ILogger<AlertingConsumer> _logger;
+        public AlertingConsumer(IBotClient botClient, ILogger<AlertingConsumer> logger) 
+            : base()
+        {
+            _botClient = botClient;
+            _logger = logger;
+        }
+        public async Task Consume(ConsumeContext<AlertingState> context)
         {
             var alert = context.Message;
-            ITelegramBotClient botClient = 
-                new TelegramBotClient("5609568219:AAERzm3uPaq9Lt37em0P_7zSAuT7cCYsom4");
+
+            SendText request;
 
             if (alert.AlertingType == AlertingTypeInfo.Alert)
             {
-                return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
-                    $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
-                     "недоступен с " +
-                     $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
+                request = new(ChatId: alert.ChatId, 
+                    Text: $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
+                          "недоступен с " +
+                          $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
             }
             else
             {
-                return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
-                    $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
-                     "OK " +
-                     $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
+                request = new(ChatId: alert.ChatId,
+                    Text: $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
+                          "OK " +
+                          $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
+            }
+
+            _logger.LogInformation($"Сообщение для отправки: {JsonSerializer.Serialize(request)}");
+
+            Telegram.Bots.Types.Response<TextMessage> response = 
+                await _botClient.HandleAsync(request);
+
+            if (response.Ok)
+            {
+                TextMessage message = response.Result;
+
+                _logger.LogInformation($"Сообщение успешно отправлено: {JsonSerializer.Serialize(message)}");
+            }
+            else
+            {
+                Failure failure = response.Failure;
+
+                _logger.LogInformation($"Сообщение не было отправлено: {JsonSerializer.Serialize(failure)}");
             }
         }
     }

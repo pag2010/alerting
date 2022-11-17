@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Telegram.Bots;
 
 namespace Alerting.Alerting
 {
@@ -33,6 +34,8 @@ namespace Alerting.Alerting
                 connection.Password = Configuration["Bus:Password"];
             },
             "AlertingState");
+
+            services.AddBotClient("5609568219:AAERzm3uPaq9Lt37em0P_7zSAuT7cCYsom4");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

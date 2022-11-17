@@ -1,8 +1,7 @@
 ﻿using MassTransit;
 using Microsoft.Extensions.Logging;
-using System.Text.Json.Serialization;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace Alerting.Infrastructure.Bus
 {
@@ -24,9 +23,9 @@ namespace Alerting.Infrastructure.Bus
 
         public async Task Publish<T>(T obj) where T : class
         {
-            _logger.LogInformation($"Сообщение для отправки: {JsonConvert.SerializeObject(obj)}");
+            _logger.LogInformation($"Сообщение для отправки: {JsonSerializer.Serialize(obj)}");
             await _busControl.Publish(obj);
-            _logger.LogInformation($"Сообщение отправлено: {JsonConvert.SerializeObject(obj)}");
+            _logger.LogInformation($"Сообщение отправлено: {JsonSerializer.Serialize(obj)}");
         }
     }
 }

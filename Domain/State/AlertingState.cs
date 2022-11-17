@@ -7,7 +7,7 @@ namespace Alerting.Domain.State
     {
         public AlertingState(
             Guid sender,
-            string chatId,
+            long chatId,
             DateTime lastActive,
             AlertingTypeInfo alertingType,
             string name) : base(sender)
@@ -19,7 +19,7 @@ namespace Alerting.Domain.State
         }
 
         public string Name { get; set; }
-        public string ChatId { get; set; }
+        public long ChatId { get; set; }
         public DateTime LastActive { get; set; }
         public AlertingTypeInfo AlertingType { get; set; }
     }
