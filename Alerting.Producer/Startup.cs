@@ -42,6 +42,7 @@ namespace Alerting.Producer
             });
             services.AddHostedBus();
             services.AddPublisher();
+            services.AddSwaggerGen();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -51,6 +52,9 @@ namespace Alerting.Producer
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             //app.UseHttpsRedirection();
 
