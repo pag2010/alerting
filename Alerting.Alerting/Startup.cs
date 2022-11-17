@@ -35,7 +35,7 @@ namespace Alerting.Alerting
             },
             "AlertingState");
 
-            services.AddBotClient("5609568219:AAERzm3uPaq9Lt37em0P_7zSAuT7cCYsom4");
+            services.AddBotClient(Configuration["TelegramBotToken"]);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

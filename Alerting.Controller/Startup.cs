@@ -37,6 +37,7 @@ namespace Alerting.Controller
 
             services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
             services.AddHostedService<IndexCreationService<ClientCache>>();
+            services.AddHostedService<IndexCreationService<ClientStateCache>>();
 
             services.AddMassTransit(x =>
             {
@@ -49,7 +50,7 @@ namespace Alerting.Controller
                     });
                 }));
             });
-            //services.AddHostedBus();
+
             services.AddTransient<IPublisher, Publisher>();
 
 
