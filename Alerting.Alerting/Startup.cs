@@ -33,7 +33,6 @@ namespace Alerting.Alerting
                 connection.Password = Configuration["Bus:Password"];
             },
             "AlertingState");
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

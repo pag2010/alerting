@@ -27,7 +27,6 @@ namespace Alerting.Producer.Controllers
             {
                 Name = model.Name,
                 ChatId = model.ChatId,
-                TelegramBotToken = model.TelegramBotToken,
                 AlertIntervalSeconds = model.AlertIntervalSeconds,
                 WaitingSeconds = model.WaitingSeconds,
                 Id = guid

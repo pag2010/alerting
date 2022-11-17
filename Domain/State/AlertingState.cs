@@ -7,13 +7,11 @@ namespace Alerting.Domain.State
     {
         public AlertingState(
             Guid sender,
-            string telegramBotToken,
             string chatId,
             DateTime lastActive,
             AlertingTypeInfo alertingType,
             string name) : base(sender)
         {
-            TelegramBotToken = telegramBotToken;
             ChatId = chatId;
             LastActive = lastActive;
             AlertingType = alertingType;
@@ -21,7 +19,6 @@ namespace Alerting.Domain.State
         }
 
         public string Name { get; set; }
-        public string TelegramBotToken { get; set; }
         public string ChatId { get; set; }
         public DateTime LastActive { get; set; }
         public AlertingTypeInfo AlertingType { get; set; }

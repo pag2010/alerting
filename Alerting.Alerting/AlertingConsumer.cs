@@ -14,19 +14,19 @@ namespace Alerting.Alerting
         {
             var alert = context.Message;
             ITelegramBotClient botClient = 
-                new TelegramBotClient(alert.TelegramBotToken);
+                new TelegramBotClient("5609568219:AAERzm3uPaq9Lt37em0P_7zSAuT7cCYsom4");
 
             if (alert.AlertingType == AlertingTypeInfo.Alert)
             {
                 return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
-                    $"{alert.Name} :" + Environment.NewLine +
+                    $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
                      "недоступен с " +
                      $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
             }
             else
             {
                 return botClient.SendTextMessageAsync(new ChatId(alert.ChatId),
-                    $"{alert.Name} :" + Environment.NewLine +
+                    $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
                      "OK " +
                      $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
             }

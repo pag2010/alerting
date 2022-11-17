@@ -78,7 +78,6 @@ namespace Alerting.Controller
                     await _publisher.Publish(
                         new AlertingState(
                             client.State.ClientId,
-                            client.Rule.TelegramBotToken,
                             client.Rule.ChatId,
                             client.State.LastActive,
                             AlertingTypeInfo.Alert,
@@ -118,7 +117,6 @@ namespace Alerting.Controller
                     await _publisher.Publish(
                         new AlertingState(
                             client.State.ClientId,
-                            client.Rule.TelegramBotToken,
                             client.Rule.ChatId,
                             client.State.LastActive,
                             AlertingTypeInfo.OK,

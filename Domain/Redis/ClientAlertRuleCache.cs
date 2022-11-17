@@ -15,7 +15,6 @@ namespace Alerting.Domain.Redis
         public Guid ClientId { get; set; }
         public int WaitingSeconds { get; set; } = 3600;
         public int AlertIntervalSeconds { get; set; } = 3600;
-        public string TelegramBotToken { get; set; }
         public string ChatId { get; set; }
     }
 }

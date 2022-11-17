@@ -36,7 +36,6 @@ namespace Alerting.AlertingRuleConsumer
                     ClientId = context.Message.Id,
                     AlertIntervalSeconds = context.Message.AlertIntervalSeconds,
                     ChatId = context.Message.ChatId,
-                    TelegramBotToken = context.Message.TelegramBotToken,
                     WaitingSeconds = context.Message.WaitingSeconds
                 });
             }
