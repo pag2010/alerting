@@ -7,6 +7,7 @@ using Grpc.Net.Client;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace Alerting.Producer.Controllers
 {
@@ -15,9 +16,11 @@ namespace Alerting.Producer.Controllers
     public class ClientController : ControllerBase
     {
         private readonly IPublisher _publisher;
-        public ClientController(IPublisher publisher)
+        private readonly Cacher.CacherClient _cacherClient;
+        public ClientController(IPublisher publisher, Cacher.CacherClient cacherClient)
         {
             _publisher = publisher;
+            _cacherClient = cacherClient;
         }
 
         [HttpPost]
@@ -53,9 +56,7 @@ namespace Alerting.Producer.Controllers
         [Route("GetInfo")]
         public async Task<HelloReply> GetInfo(Guid clientId)
         {
-            using var channel = GrpcChannel.ForAddress("http://host.docker.internal:5006");
-            var client = new Cacher.CacherClient(channel);
-            var result = await client.SayHelloAsync(new HelloRequest
+            var result = await _cacherClient.SayHelloAsync(new HelloRequest
             {
                 Name = "Worker"
             });

@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Alerting.Infrastructure.Bus;
 using MassTransit;
+using CacherServiceClient;
 
 namespace Alerting.Producer
 {
@@ -40,6 +41,12 @@ namespace Alerting.Producer
                     });
                 }));
             });
+
+            services.AddGrpcClient<Cacher.CacherClient>(o =>
+            {
+                o.Address = new Uri("http://host.docker.internal:5006");
+            });
+
             services.AddHostedBus();
             services.AddPublisher();
             services.AddSwaggerGen();
