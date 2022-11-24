@@ -2,6 +2,8 @@
 using Alerting.Domain.State;
 using Alerting.Infrastructure.Bus;
 using Alerting.Producer.Models;
+using CacherServiceClient;
+using Grpc.Net.Client;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -45,6 +47,19 @@ namespace Alerting.Producer.Controllers
             {
                 Id = model.Id,
             });
+        }
+
+        [HttpGet]
+        [Route("GetInfo")]
+        public async Task<HelloReply> GetInfo(Guid clientId)
+        {
+            using var channel = GrpcChannel.ForAddress("http://host.docker.internal:5006");
+            var client = new Cacher.CacherClient(channel);
+            var result = await client.SayHelloAsync(new HelloRequest
+            {
+                Name = "Worker"
+            });
+            return result;
         }
     }
 }

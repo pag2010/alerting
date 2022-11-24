@@ -68,3 +68,11 @@ services:
     ports:
       - "5005:80"
 
+
+  cacheservice:
+    image: ${DOCKER_REGISTRY-}cacheservice
+    build:
+      context: .
+      dockerfile: CacheService/Dockerfile
+    ports:
+      - "5006:80"
