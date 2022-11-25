@@ -54,12 +54,13 @@ namespace Alerting.Producer.Controllers
 
         [HttpGet]
         [Route("GetInfo")]
-        public async Task<HelloReply> GetInfo(Guid clientId)
+        public async Task<AlertRuleReply> GetInfo(Guid clientId)
         {
-            var result = await _cacherClient.SayHelloAsync(new HelloRequest
+            var result = await _cacherClient.GetClientAlertRuleInfoAsync(new ClientRequest
             {
-                Name = "Worker"
+                Id = clientId.ToString()
             });
+
             return result;
         }
     }

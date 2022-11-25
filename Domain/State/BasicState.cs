@@ -12,5 +12,10 @@ namespace Alerting.Domain.State
         {
             Sender = sender;
         }
+
+        public BasicState()
+        {
+
+        }
     }
 }

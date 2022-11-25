@@ -30,15 +30,17 @@ namespace Alerting.Alerting
             if (alert.AlertingType == AlertingTypeInfo.Alert)
             {
                 request = new(ChatId: alert.ChatId, 
-                    Text: $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
-                          "недоступен с " +
-                          $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
+                    Text: $"{alert.Name}" + Environment.NewLine + $"{alert.Sender}"
+                          + Environment.NewLine + Environment.NewLine +
+                          "НЕДОСТУПЕН" + Environment.NewLine + Environment.NewLine +
+                          $"c {alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
             }
             else
             {
                 request = new(ChatId: alert.ChatId,
-                    Text: $"{alert.Name} {alert.Sender} :" + Environment.NewLine +
-                          "OK " +
+                    Text: $"{alert.Name}" + Environment.NewLine + $"{ alert.Sender}" 
+                          + Environment.NewLine + Environment.NewLine +
+                          "OK" + Environment.NewLine + Environment.NewLine +
                           $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
             }
 
@@ -58,6 +60,7 @@ namespace Alerting.Alerting
                 Failure failure = response.Failure;
 
                 _logger.LogInformation($"Сообщение не было отправлено: {JsonSerializer.Serialize(failure)}");
+                throw new Exception("Не удалось отправить сообщение Telegram");
             }
         }
     }

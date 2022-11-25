@@ -13,13 +13,13 @@ namespace Alerting.AlertingRuleConsumer
     public class AlertingRuleConsumer : IConsumer<ClientRegistration>
     {
         private readonly RedisConnectionProvider _provider;
-        private readonly RedisCollection<ClientAlertRuleCache> _clientAlerts;
+        private readonly RedisCollection<ClientAlertRuleCache> _clientAlertRules;
         private readonly RedisCollection<ClientCache> _clients;
 
         public AlertingRuleConsumer(RedisConnectionProvider provider)
         {
             _provider = provider;
-            _clientAlerts =
+            _clientAlertRules =
                 (RedisCollection<ClientAlertRuleCache>)provider.RedisCollection<ClientAlertRuleCache>();
             _clients =
                 (RedisCollection<ClientCache>)provider.RedisCollection<ClientCache>();
@@ -30,7 +30,7 @@ namespace Alerting.AlertingRuleConsumer
             var registeredClient = await _clients.SingleOrDefaultAsync(ca => ca.Id == context.Message.Id);
             if (registeredClient != null)
             {
-                await _clientAlerts.InsertAsync(new ClientAlertRuleCache
+                await _clientAlertRules.InsertAsync(new ClientAlertRuleCache
                 {
                     Id = Guid.NewGuid(),
                     ClientId = context.Message.Id,

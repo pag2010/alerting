@@ -44,7 +44,7 @@ namespace Alerting.Producer
 
             services.AddGrpcClient<Cacher.CacherClient>(o =>
             {
-                o.Address = new Uri("http://host.docker.internal:5006");
+                o.Address = new Uri(Configuration["CacherService"]);
             });
 
             services.AddHostedBus();

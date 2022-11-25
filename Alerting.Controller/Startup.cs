@@ -1,21 +1,14 @@
 using Alerting.Domain.Redis;
 using Alerting.Infrastructure.Bus;
-using Alerting.Infrastructure.InfluxDB;
 using Alerting.Infrastructure.Redis;
 using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Redis.OM;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Alerting.Controller
 {
