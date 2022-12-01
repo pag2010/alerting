@@ -28,6 +28,7 @@ services:
       - "5000:80"
     restart: always
 
+
   alerting.consumer:
     image: ${DOCKER_REGISTRY-}alertingconsumer
     build:
@@ -46,6 +47,7 @@ services:
     ports:
       - "5002:80"
     restart: always
+
 
   alerting.alerting:
     image: ${DOCKER_REGISTRY-}alertingalerting
@@ -85,10 +87,6 @@ services:
     ports:
       - "5006:80"
     restart: always
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=https://+:443;http://+:80
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=123456
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
     volumes:
-      - ~/.aspnet/https:/https:ro
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"

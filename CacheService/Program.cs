@@ -16,6 +16,8 @@ builder.Services.AddSingleton(new RedisConnectionProvider(
     configuration.GetValue<string>("Redis")
     ));
 builder.Services.AddHostedService<IndexCreationService<ClientAlertRuleCache>>();
+builder.Services.AddHostedService<IndexCreationService<ClientCache>>();
+builder.Services.AddHostedService<IndexCreationService<ClientStateCache>>();
 
 var app = builder.Build();
 

@@ -8,7 +8,7 @@ package cache;
 service Cacher {
   // Sends a greeting
   rpc SayHello (HelloRequest) returns (HelloReply);
-  rpc GetClientAlertRuleInfo (ClientRequest) returns (AlertRuleReply);
+  rpc GetClientInfo (ClientInfoRequest) returns (ClientInfoReply);
 }
 
 // The request message containing the user's name.
@@ -16,7 +16,7 @@ message HelloRequest {
   string name = 1;
 }
 
-message ClientRequest {
+message ClientInfoRequest {
   string id = 1;
 }
 
@@ -26,12 +26,23 @@ message HelloReply {
 }
 
 message AlertRule {
-  string clientId = 1;
-  int32 waitingSeconds = 2;
-  int32 alertIntervalSeconds = 3;
-  int64 chatId = 4;
+  int32 waitingSeconds = 1;
+  int32 alertIntervalSeconds = 2;
+  int64 chatId = 3;
 }
 
-message AlertRuleReply {
+message ClientData {
+	string id = 1;
+	string name = 2;
+}
+
+message StateData {
+	string lastActive = 1;
+	string lastAlerted = 2;
+}
+
+message ClientInfoReply {
 	repeated AlertRule alertRules = 1;
+	ClientData clientData = 2;
+	StateData stateData = 3;
 }

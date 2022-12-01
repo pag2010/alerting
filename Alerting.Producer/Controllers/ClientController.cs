@@ -4,10 +4,11 @@ using Alerting.Infrastructure.Bus;
 using Alerting.Producer.Models;
 using CacherServiceClient;
 using Grpc.Net.Client;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
-using static System.Net.WebRequestMethods;
 
 namespace Alerting.Producer.Controllers
 {
@@ -54,14 +55,29 @@ namespace Alerting.Producer.Controllers
 
         [HttpGet]
         [Route("GetInfo")]
-        public async Task<AlertRuleReply> GetInfo(Guid clientId)
+        public async Task<IResult> GetInfo([FromQuery]ClientInfoModel model)
         {
-            var result = await _cacherClient.GetClientAlertRuleInfoAsync(new ClientRequest
+            try
             {
-                Id = clientId.ToString()
-            });
+                if (!ModelState.IsValid)
+                {
+                    var message = string.Join(" | ", ModelState.Values
+                                  .SelectMany(v => v.Errors)
+                                  .Select(e => e.ErrorMessage));
+                    return Results.BadRequest(message);
+                }
 
-            return result;
+                var result = await _cacherClient.GetClientInfoAsync(new ClientInfoRequest
+                {
+                    Id = model.ClientId.ToString()
+                });
+
+                return Results.Ok(result);
+            }
+            catch
+            {
+                return Results.Problem("Произошла ошибка при обработке запроса");
+            }
         }
     }
 }

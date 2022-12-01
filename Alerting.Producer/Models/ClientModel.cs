@@ -1,11 +1,11 @@
-﻿using Alerting.Domain.Redis;
-using System.Collections.Generic;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Alerting.Producer.Models
 {
-    public class ClientModel
+    public class ClientInfoModel
     {
-        public ClientCache Client { get; set; }
-        public List<ClientAlertRuleCache> AlertRules { get; set; }
+        [Required(ErrorMessage = "Идентификатор клиента обязателен")]
+        public Guid ClientId { get; set; }
     }
 }
