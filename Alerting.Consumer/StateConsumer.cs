@@ -10,6 +10,7 @@ using Redis.OM.Searching;
 using System;
 using System.Threading.Tasks;
 using State = Alerting.Domain.State.State;
+using Microsoft.Extensions.Logging;
 
 namespace Alerting.Consumer
 {
@@ -19,11 +20,13 @@ namespace Alerting.Consumer
         private readonly RedisConnectionProvider _provider;
         private readonly RedisCollection<ClientStateCache> _clientStates;
         private readonly RedisCollection<ClientCache> _clients;
+        private readonly ILogger<StateConsumer> _logger;
 
         public StateConsumer(
             InfluxDBService service,
-            RedisConnectionProvider provider
-            )
+            RedisConnectionProvider provider,
+            ILogger<StateConsumer> logger
+        )
         {
             _service = service;
             _provider = provider;
@@ -31,13 +34,22 @@ namespace Alerting.Consumer
                 (RedisCollection<ClientStateCache>)provider.RedisCollection<ClientStateCache>();
             _clients =
                     (RedisCollection<ClientCache>)provider.RedisCollection<ClientCache>();
+            
+            _logger = logger;
         }
 
         public async Task Consume(ConsumeContext<State> context)
         {
             await AddOrUpdateCache(context);
 
-            //await SaveMetrics(context);
+            try
+            {
+                await SaveMetrics(context);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(1, ex, "Ошибка при записи метрики");
+            }
         }
 
         private Task SaveMetrics(ConsumeContext<State> context)
@@ -45,12 +57,13 @@ namespace Alerting.Consumer
             return Task.Run(() =>
                 _service.Write(write =>
                 {
+                    var time = context.SentTime ?? DateTime.Now;
                     var point = PointData.Measurement("state")
                         .Tag("sender", context.Message.Sender.ToString())
                         .Field("value", 1)
-                        .Timestamp(DateTime.Now, WritePrecision.Ns);
+                        .Timestamp(time.ToUniversalTime(), WritePrecision.Ns);
 
-                    write.WritePoint(point, "state", "alerting");
+                    write.WritePoint(point, "state", "Alerting");
                 })
             );
         }
@@ -74,15 +87,19 @@ namespace Alerting.Consumer
             {
                 await _clientStates.InsertAsync(new ClientStateCache
                 {
-                    ClientId = context.Message.Sender,
-                    LastActive = DateTime.Now,
+                    ClientId = context.Message.Sender.Value,
+                    LastActive = context.SentTime ?? DateTime.Now,
                     StateType = StateTypeInfo.Alerting
                 });
             }
             else
             {
-                existingState.LastActive = DateTime.Now;
-                await _clientStates.UpdateAsync(existingState);
+                var time = context.SentTime ?? DateTime.Now;
+                if (existingState.LastActive < time)
+                {
+                    existingState.LastActive = time;
+                    await _clientStates.UpdateAsync(existingState);
+                }
             } 
         }
     }

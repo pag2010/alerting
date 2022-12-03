@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.ComponentModel.DataAnnotations;
 
 namespace Alerting.Domain.State
 {
     public class BasicState
     {
-        public Guid Sender { get; set; }
+        [Required (ErrorMessage = "Нужно указать GUID отправителя")]
+        public Guid? Sender { get; set; }
 
         public BasicState(Guid sender)
         {

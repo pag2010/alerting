@@ -76,7 +76,7 @@ namespace Alerting.Producer.Controllers
             }
             catch
             {
-                return Results.Problem("Произошла ошибка при обработке запроса");
+                return Results.Problem("Произошла ошибка при обработке запроса", statusCode: 500);
             }
         }
     }
