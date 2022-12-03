@@ -1,3 +1,4 @@
+using Alerting.Domain.DataBase;
 using Alerting.Domain.Redis;
 using Grpc.Core;
 using Redis.OM;
@@ -12,16 +13,20 @@ namespace CacheService.Services
         private readonly RedisCollection<ClientAlertRuleCache> _clientAlertRules;
         private readonly RedisCollection<ClientStateCache> _clientStates;
         private readonly RedisCollection<ClientCache> _clients;
+        private readonly TimeZoneInfo _timeZone;
 
         public CacherService(ILogger<CacherService> logger, RedisConnectionProvider provider)
         {
             _logger = logger;
+
             _clientAlertRules =
                 (RedisCollection<ClientAlertRuleCache>)provider.RedisCollection<ClientAlertRuleCache>();
             _clients =
                 (RedisCollection<ClientCache>)provider.RedisCollection<ClientCache>();
             _clientStates =
                 (RedisCollection<ClientStateCache>)provider.RedisCollection<ClientStateCache>();
+
+            _timeZone = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
         }
 
         public override Task<ClientInfoReply> GetClientInfo(ClientInfoRequest request, ServerCallContext context)
@@ -43,24 +48,7 @@ namespace CacheService.Services
 
                 var state = _clientStates.SingleOrDefault(s => s.ClientId == guid);
 
-                ClientInfoReply reply = new ClientInfoReply();
-                reply.AlertRules.AddRange(alertRules);
-                if (client != null)
-                {
-                    reply.ClientData = new ClientData()
-                    {
-                        Id = client.Id.ToString(),
-                        Name = client.Name
-                    };
-                }
-                if (state != null)
-                {
-                    reply.StateData = new StateData()
-                    {
-                        LastActive = state.LastActive.ToUniversalTime().ToString(),
-                        LastAlerted = state.LastAlerted.ToUniversalTime().ToString(),
-                    };
-                }
+                var reply = GetClientInfoReply(client, alertRules, state, _timeZone);
 
                 return Task.FromResult(reply);
             }
@@ -69,6 +57,36 @@ namespace CacheService.Services
                 _logger.LogError(1, ex, $"Ошибка GetClientInfo. Запрос: {JsonSerializer.Serialize(request)}");
                 throw;
             }
+        }
+
+        private ClientInfoReply GetClientInfoReply(
+            ClientCache client,
+            IEnumerable<AlertRule> alertRules,
+            ClientStateCache state,
+            TimeZoneInfo timeZone)
+        {
+            ClientInfoReply reply = new ClientInfoReply();
+            reply.AlertRules.AddRange(alertRules);
+            if (client != null)
+            {
+                reply.ClientData = new ClientData()
+                {
+                    Id = client.Id.ToString(),
+                    Name = client.Name
+                };
+            }
+            if (state != null)
+            {
+                reply.StateData = new StateData()
+                {
+                    LastActive = TimeZoneInfo
+                        .ConvertTime(state.LastActive.ToUniversalTime(), timeZone).ToString(),
+                    LastAlerted = TimeZoneInfo
+                        .ConvertTime(state.LastAlerted.ToUniversalTime(), timeZone).ToString(),
+                };
+            }
+
+            return reply;
         }
     }
 }

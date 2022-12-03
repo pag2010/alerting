@@ -18,6 +18,7 @@ namespace Alerting.Consumer
         private readonly InfluxDBService _service;
         private readonly RedisConnectionProvider _provider;
         private readonly RedisCollection<ClientStateCache> _clientStates;
+        private readonly RedisCollection<ClientCache> _clients;
 
         public StateConsumer(
             InfluxDBService service,
@@ -28,6 +29,8 @@ namespace Alerting.Consumer
             _provider = provider;
             _clientStates = 
                 (RedisCollection<ClientStateCache>)provider.RedisCollection<ClientStateCache>();
+            _clients =
+                    (RedisCollection<ClientCache>)provider.RedisCollection<ClientCache>();
         }
 
         public async Task Consume(ConsumeContext<State> context)
@@ -55,7 +58,16 @@ namespace Alerting.Consumer
         private async Task AddOrUpdateCache(ConsumeContext<State> context)
         {
             var state = context.Message;
-            var existingState = await _clientStates.SingleOrDefaultAsync(cs=>
+
+            var existingClient = await _clients.SingleOrDefaultAsync(c =>
+                c.Id == state.Sender);
+
+            if (existingClient == null)
+            {
+                return;
+            }
+
+            var existingState = await _clientStates.SingleOrDefaultAsync(cs =>
                 cs.ClientId == state.Sender);
 
             if (existingState == null)
