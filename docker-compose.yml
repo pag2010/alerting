@@ -57,7 +57,8 @@ services:
 
 
   alerting.alerting:
-    image: ${DOCKER_REGISTRY-}alertingalerting
+    image: ${DOCKER_REGISTRY-}alertingtelegrambot
+    container_name: 'telegramBot'
     build:
       context: .
       dockerfile: Alerting.Alerting/Dockerfile
