@@ -4,6 +4,7 @@ using Alerting.Infrastructure.Bus;
 using Alerting.Domain.State;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
+using Alerting.Producer.Models;
 
 namespace Alerting.Producer
 {
@@ -19,7 +20,7 @@ namespace Alerting.Producer
 
         [HttpGet]
         [Route("Publish")]
-        public async Task<IResult> Publish([FromQuery]BasicState senderState)
+        public async Task<IResult> Publish([FromQuery]StateModel senderState)
         {
             if (!ModelState.IsValid)
             {
@@ -28,7 +29,7 @@ namespace Alerting.Producer
                                   .Select(e => e.ErrorMessage));
                 return Results.BadRequest(message);
             }
-            var state = new State(senderState.Sender.Value);
+            var state = new State(senderState.Sender);
             await _publisher.Publish(state);
 
             return Results.Ok();

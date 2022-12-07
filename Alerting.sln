@@ -15,15 +15,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Consumer", "Alerti
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Controller", "Alerting.Controller\Alerting.Controller.csproj", "{32EA1FEC-7A89-44EA-B854-1B94F8DC0484}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.Alerting", "Alerting.Alerting\Alerting.Alerting.csproj", "{52FF6CF8-717F-4D45-A9D3-B8253AE373F0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.TelegramBot", "Alerting.Alerting\Alerting.TelegramBot.csproj", "{52FF6CF8-717F-4D45-A9D3-B8253AE373F0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.AlertingRuleConsumer", "Alerting.AlertingRuleConsumer\Alerting.AlertingRuleConsumer.csproj", "{AA12BB0F-98A3-43F1-8388-ACE20CFA77E9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Alerting.ClientRegistrationConsumer", "Alerting.ClientRegistrationConsumer\Alerting.ClientRegistrationConsumer.csproj", "{85BD11B1-8733-42DF-901B-10407F4A3F92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheService", "CacheService\CacheService.csproj", "{C1EA14A6-BB9E-4EB9-9779-CD9008A32E6D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheService", "CacheService\CacheService.csproj", "{C1EA14A6-BB9E-4EB9-9779-CD9008A32E6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacherServiceClient", "CacherServiceClient\CacherServiceClient.csproj", "{414F7934-2D2A-40B2-9A82-BC35D0A22E52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacherServiceClient", "CacherServiceClient\CacherServiceClient.csproj", "{414F7934-2D2A-40B2-9A82-BC35D0A22E52}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

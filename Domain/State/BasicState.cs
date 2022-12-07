@@ -6,7 +6,7 @@ namespace Alerting.Domain.State
     public class BasicState
     {
         [Required (ErrorMessage = "Нужно указать GUID отправителя")]
-        public Guid? Sender { get; set; }
+        public Guid Sender { get; set; }
 
         public BasicState(Guid sender)
         {

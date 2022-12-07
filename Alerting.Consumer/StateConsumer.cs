@@ -87,7 +87,7 @@ namespace Alerting.Consumer
             {
                 await _clientStates.InsertAsync(new ClientStateCache
                 {
-                    ClientId = context.Message.Sender.Value,
+                    ClientId = context.Message.Sender,
                     LastActive = context.SentTime ?? DateTime.Now,
                     StateType = StateTypeInfo.Alerting
                 });
