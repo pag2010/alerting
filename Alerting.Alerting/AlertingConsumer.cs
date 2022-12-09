@@ -3,19 +3,21 @@ using Alerting.Domain.Enums;
 using MassTransit;
 using System;
 using System.Threading.Tasks;
-using Telegram.Bots;
-using Telegram.Bots.Requests;
-using Telegram.Bots.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using Telegram.Bot;
+using System.Threading;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Bot.Types;
 
 namespace Alerting.Alerting
 {
     public class AlertingConsumer : IConsumer<AlertingState>
     {
-        private readonly IBotClient _botClient;
+        private readonly ITelegramBotClient _botClient;
         private readonly ILogger<AlertingConsumer> _logger;
-        public AlertingConsumer(IBotClient botClient, ILogger<AlertingConsumer> logger) 
+        public AlertingConsumer(TelegramBotClient botClient, ILogger<AlertingConsumer> logger) 
             : base()
         {
             _botClient = botClient;
@@ -25,42 +27,37 @@ namespace Alerting.Alerting
         {
             var alert = context.Message;
 
-            SendText request;
+            Message message;
 
-            if (alert.AlertingType == AlertingTypeInfo.Alert)
+            try
             {
-                request = new(ChatId: alert.ChatId, 
-                    Text: $"{alert.Name}" + Environment.NewLine + $"{alert.Sender}"
-                          + Environment.NewLine + Environment.NewLine +
-                          "НЕДОСТУПЕН" + Environment.NewLine + Environment.NewLine +
-                          $"c {alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
-            }
-            else
-            {
-                request = new(ChatId: alert.ChatId,
-                    Text: $"{alert.Name}" + Environment.NewLine + $"{ alert.Sender}" 
-                          + Environment.NewLine + Environment.NewLine +
-                          "OK" + Environment.NewLine + Environment.NewLine +
-                          $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}");
-            }
-
-            _logger.LogInformation($"Сообщение для отправки: {JsonSerializer.Serialize(request)}");
-
-            Telegram.Bots.Types.Response<TextMessage> response = 
-                await _botClient.HandleAsync(request);
-
-            if (response.Ok)
-            {
-                TextMessage message = response.Result;
+                if (alert.AlertingType == AlertingTypeInfo.Alert)
+                {
+                    message = await _botClient.SendTextMessageAsync(
+                        chatId: alert.ChatId,
+                        text: $"{alert.Name}" + Environment.NewLine + $"{alert.Sender}"
+                                  + Environment.NewLine + Environment.NewLine +
+                                  "НЕДОСТУПЕН" + Environment.NewLine + Environment.NewLine +
+                                  $"c {alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}"
+                    );
+                }
+                else
+                {
+                    message = await _botClient.SendTextMessageAsync(
+                        chatId: alert.ChatId,
+                        text: $"{alert.Name}" + Environment.NewLine + $"{alert.Sender}"
+                              + Environment.NewLine + Environment.NewLine +
+                              "OK" + Environment.NewLine + Environment.NewLine +
+                              $"{alert.LastActive.AddHours(3).ToString("HH:mm:ss dd.MM.yy")}"
+                    );
+                }
 
                 _logger.LogInformation($"Сообщение успешно отправлено: {JsonSerializer.Serialize(message)}");
             }
-            else
+            catch (Exception ex)
             {
-                Failure failure = response.Failure;
-
-                _logger.LogInformation($"Сообщение не было отправлено: {JsonSerializer.Serialize(failure)}");
-                throw new Exception("Не удалось отправить сообщение Telegram");
+                _logger.LogInformation($"Сообщение не было отправлено: {JsonSerializer.Serialize(ex)}");
+                throw;
             }
         }
     }

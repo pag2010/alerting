@@ -1,12 +1,10 @@
-using Alerting.Domain.DataBase;
 using Alerting.Infrastructure.Bus;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Telegram.Bots;
+using Telegram.Bot;
 
 namespace Alerting.Alerting
 {
@@ -35,7 +33,7 @@ namespace Alerting.Alerting
             },
             "AlertingState");
 
-            services.AddBotClient(Configuration["TelegramBotToken"]);
+            services.AddSingleton(new TelegramBotClient(Configuration["TelegramBotToken"]));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
