@@ -48,7 +48,9 @@ namespace CacheService.Services
 
                 var state = _clientStates.SingleOrDefault(s => s.ClientId == guid);
 
+#pragma warning disable CS8604 // ¬озможно, аргумент-ссылка, допускающий значение NULL.
                 var reply = GetClientInfoReply(client, alertRules, state, _timeZone);
+#pragma warning restore CS8604 // ¬озможно, аргумент-ссылка, допускающий значение NULL.
 
                 return Task.FromResult(reply);
             }

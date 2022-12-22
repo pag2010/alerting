@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
+using Telegram.Bot.Services;
 
 namespace Alerting.Alerting
 {
@@ -22,9 +23,6 @@ namespace Alerting.Alerting
         {
             services.AddControllers();
 
-            //services.AddDbContext<DataContext>(
-            //    options => options.UseNpgsql(Configuration["DB"]));
-
             services.AddRabbitConnection<AlertingConsumer>(connection =>
             {
                 connection.Uri = Configuration["Bus:RabbitMq"];
@@ -33,7 +31,22 @@ namespace Alerting.Alerting
             },
             "AlertingState");
 
-            services.AddSingleton(new TelegramBotClient(Configuration["TelegramBotToken"]));
+            services.Configure<BotConfiguration>(
+                Configuration.GetSection(BotConfiguration.Configuration));
+
+            services.AddHttpClient("telegram_bot_client")
+                .AddTypedClient<ITelegramBotClient>((httpClient, sp) =>
+                {
+                    BotConfiguration? botConfig = sp.GetConfiguration<BotConfiguration>();
+                    TelegramBotClientOptions options = new(botConfig.BotToken);
+                    return new TelegramBotClient(options, httpClient);
+                });
+
+            //services.AddSingleton(new TelegramBotClient(Configuration["BotConfiguration:BotToken"]));
+            
+            services.AddScoped<UpdateHandler>();
+            services.AddScoped<ReceiverService>();
+            services.AddHostedService<PollingService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -55,5 +68,13 @@ namespace Alerting.Alerting
                 endpoints.MapControllers();
             });
         }
+    }
+    public class BotConfiguration
+#pragma warning restore RCS1110 // Declare type inside namespace.
+#pragma warning restore CA1050 // Declare types in namespaces
+    {
+        public static readonly string Configuration = "BotConfiguration";
+
+        public string BotToken { get; set; } = "";
     }
 }

@@ -42,7 +42,9 @@ namespace Alerting.Controller
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
+#pragma warning disable CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
             SendAsync(stoppingToken);
+#pragma warning restore CS4014 // Так как этот вызов не ожидается, выполнение существующего метода продолжается до тех пор, пока вызов не будет завершен
 
             return Task.CompletedTask;
         }

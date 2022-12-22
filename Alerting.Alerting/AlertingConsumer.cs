@@ -17,7 +17,7 @@ namespace Alerting.Alerting
     {
         private readonly ITelegramBotClient _botClient;
         private readonly ILogger<AlertingConsumer> _logger;
-        public AlertingConsumer(TelegramBotClient botClient, ILogger<AlertingConsumer> logger) 
+        public AlertingConsumer(ITelegramBotClient botClient, ILogger<AlertingConsumer> logger) 
             : base()
         {
             _botClient = botClient;
