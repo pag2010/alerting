@@ -3,7 +3,6 @@ using Alerting.Domain.State;
 using Alerting.Infrastructure.Bus;
 using Alerting.Producer.Models;
 using CacherServiceClient;
-using Grpc.Net.Client;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;

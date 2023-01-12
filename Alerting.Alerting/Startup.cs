@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Services;
+using CacherServiceClient;
+using System;
 
 namespace Alerting.Alerting
 {
@@ -42,8 +44,11 @@ namespace Alerting.Alerting
                     return new TelegramBotClient(options, httpClient);
                 });
 
-            //services.AddSingleton(new TelegramBotClient(Configuration["BotConfiguration:BotToken"]));
-            
+            services.AddGrpcClient<Cacher.CacherClient>(o =>
+            {
+                o.Address = new Uri(Configuration["CacherService"]);
+            });
+
             services.AddScoped<UpdateHandler>();
             services.AddScoped<ReceiverService>();
             services.AddHostedService<PollingService>();

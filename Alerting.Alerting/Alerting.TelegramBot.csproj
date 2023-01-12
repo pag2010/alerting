@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.51.0" />
     <PackageReference Include="MassTransit" Version="8.0.7" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="8.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.7">
@@ -24,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alerting.Infrastructure\Alerting.Infrastructure.csproj" />
+    <ProjectReference Include="..\CacherServiceClient\CacherServiceClient.csproj" />
     <ProjectReference Include="..\Domain\Alerting.Domain.csproj" />
   </ItemGroup>
 
