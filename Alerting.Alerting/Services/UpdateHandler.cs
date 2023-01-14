@@ -1,11 +1,12 @@
-using CacherServiceClient;
-using MassTransit.Testing;
+using Alerting.Infrastructure.Bus;
+using Alerting.TelegramBot.Dialog;
+using Alerting.TelegramBot.Redis;
 using Microsoft.Extensions.Logging;
+using Redis.OM;
+using Redis.OM.Searching;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot.Exceptions;
@@ -14,7 +15,9 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
-using static MassTransit.ValidationResultExtensions;
+using static CacherServiceClient.Cacher;
+using StateMachine = Alerting.TelegramBot.Dialog.StateMachine;
+using StateType = Alerting.TelegramBot.Redis.Enums.StateType;
 
 namespace Telegram.Bot.Services;
 
@@ -22,15 +25,24 @@ public class UpdateHandler : IUpdateHandler
 {
     private readonly ITelegramBotClient _botClient;
     private readonly ILogger<UpdateHandler> _logger;
-    private readonly Cacher.CacherClient _cacherClient;
+    private readonly CacherClient _cacherClient;
+    private readonly IPublisher _publisher;
+    private readonly RedisCollection<StateMachine> _cachedStateMachines;
+    private readonly StateMachineFabric _stateMachineFabric;
 
     public UpdateHandler(ITelegramBotClient botClient,
                          ILogger<UpdateHandler> logger,
-                         Cacher.CacherClient cacherClient)
+                         CacherClient cacherClient,
+                         IPublisher publisher,
+                         RedisConnectionProvider provider)
     {
         _botClient = botClient;
         _logger = logger;
         _cacherClient = cacherClient;
+        _publisher = publisher;
+        _cachedStateMachines =
+                (RedisCollection<StateMachine>)provider.RedisCollection<StateMachine>();
+        _stateMachineFabric = new StateMachineFabric(_botClient, _cacherClient);
     }
 
     public async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
@@ -56,19 +68,50 @@ public class UpdateHandler : IUpdateHandler
 
     private async Task BotOnMessageReceived(Message message, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Receive message type: {MessageType}", message.Type);
-        if (message.Text is not { } messageText)
-            return;
+        try
+        {
+            _logger.LogInformation("Receive message type: {MessageType}", message.Type);
+            if (message.Text is not { } messageText)
+                return;
 
-        var action = messageText.Split(' ')[0] switch
-        {
-            "/get_info" => GetInfoHandler(_botClient, message, cancellationToken),
-            "/start" => Usage(_botClient, message, cancellationToken)
-        };
-        IEnumerable<Message> sentMessages = await action;
-        foreach (var sentMessage in sentMessages)
-        {
+            var dialogStates = await _cachedStateMachines.ToListAsync();
+            var dialogState = dialogStates.SingleOrDefault(state => state.UserId == message.From.Id &&
+                              state.ChatId == message.Chat.Id &&
+                              (message.ReplyToMessage == null || state.LastMessageId == message.ReplyToMessage.MessageId));
+            
+            Task<Message> action;
+            StateMachine stateMachine = null;
+
+            if (dialogState == null)
+            {
+                action = messageText.Split(' ')[0] switch
+                {
+                    "/get_info" => GetInfoHandler(_botClient, message, cancellationToken, _cacherClient, _cachedStateMachines),
+                    "/start" => Usage(_botClient, message, cancellationToken),
+                    //"/register" => RegisterHandler(_botClient, message, cancellationToken, _publisher),
+                    _ => Usage(_botClient, message, cancellationToken)
+                };
+            }
+            else
+            {
+                stateMachine = _stateMachineFabric.GetStateMachine(dialogState);
+                action = stateMachine.Action(message, cancellationToken);
+                await _cachedStateMachines.UpdateAsync(dialogState);
+            }
+
+            var sentMessage = await action;
+
+            if (stateMachine != null && stateMachine.State == StateType.Final)
+            {
+                await _cachedStateMachines.DeleteAsync(dialogState);
+            }
+
             _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.MessageId);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation("Error BotOnMessageReceived: {SentMessageId}", ex.Message);
         }
 
         // Send inline keyboard
@@ -151,36 +194,29 @@ public class UpdateHandler : IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        static async Task<IEnumerable<Message>> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        static async Task<Message> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            const string usage = "Usage:\n" +
-                                 "/inline_keyboard - send inline keyboard\n" +
-                                 "/keyboard    - send custom keyboard\n" +
-                                 "/remove      - remove custom keyboard\n" +
-                                 "/photo       - send a photo\n" +
-                                 "/request     - request location or contact\n" +
-                                 "/inline_mode - send keyboard with Inline Query";
+            const string usage = "Команды:\n" +
+                                 "/get_info {guid} {guid} - Получить информацию по клиенту. Список guid указывается через пробел\n";
 
-            return new List<Message>() 
-            {
-                await botClient.SendTextMessageAsync(
-                    chatId: message.Chat.Id,
-                    text: usage,
-                    replyMarkup: new ReplyKeyboardRemove(),
-                    cancellationToken: cancellationToken) 
-            };
+            return await botClient.SendTextMessageAsync(
+                         chatId: message.Chat.Id,
+                         text: usage,
+                         replyMarkup: new ReplyKeyboardRemove(),
+                         cancellationToken: cancellationToken);
         }
 
-        static async Task<Message> StartInlineQuery(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        static async Task<IEnumerable<Message>> StartInlineQuery(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             InlineKeyboardMarkup inlineKeyboard = new(
                 InlineKeyboardButton.WithSwitchInlineQueryCurrentChat("Inline Mode"));
 
-            return await botClient.SendTextMessageAsync(
+            return new List<Message>(){await botClient.SendTextMessageAsync(
                 chatId: message.Chat.Id,
                 text: "Press the button to start Inline Query",
                 replyMarkup: inlineKeyboard,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken)
+            };
         }
 
 #pragma warning disable RCS1163 // Unused parameter.
@@ -191,6 +227,29 @@ public class UpdateHandler : IUpdateHandler
         }
 #pragma warning restore IDE0060 // Remove unused parameter
 #pragma warning restore RCS1163 // Unused parameter.
+
+        static async Task<Message> GetInfoHandler(ITelegramBotClient botClient,
+                                                          Message message,
+                                                          CancellationToken cancellationToken,
+                                                          CacherClient cacherClient,
+                                                          RedisCollection<StateMachine> dialogStateMachine)
+        { 
+            var botMessage = await botClient.SendTextMessageAsync(
+                             chatId: message.Chat.Id,
+                             text: "Укажите guid",
+                             replyMarkup: new ForceReplyMarkup(),
+                             cancellationToken: cancellationToken);
+
+            var state = new GetInfoStateMachine(botClient,
+                                                cacherClient,
+                                                message.Chat.Id,
+                                                message.From.Id,
+                                                botMessage.MessageId);
+            
+            await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(120));
+
+            return botMessage;
+        }
     }
 
     // Process Inline Keyboard callback data
@@ -266,35 +325,5 @@ public class UpdateHandler : IUpdateHandler
         // Cooldown in case of network connection error
         if (exception is RequestException)
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
-    }
-
-    public async Task<IEnumerable<Message>> GetInfoHandler(ITelegramBotClient botClient,
-                                                           Message message,
-                                                           CancellationToken cancellationToken)
-    {
-        try
-        {
-            var resultMessages = new List<Message>();
-            var clientIds = message.Text.Split(' ');
-            for (int i = 1; i< clientIds.Length; i++)
-            {
-                var result = await _cacherClient.GetClientInfoAsync(new ClientInfoRequest
-                {
-                    Id = clientIds[i].ToString()
-                });
-
-                resultMessages.Add(
-                    await botClient.SendTextMessageAsync(
-                      chatId: message.Chat.Id,
-                      text: JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }),
-                      cancellationToken: cancellationToken));
-            }
-
-            return resultMessages;    
-        }
-        catch
-        {
-            throw;
-        }
     }
 }

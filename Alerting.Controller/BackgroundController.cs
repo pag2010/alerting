@@ -85,6 +85,7 @@ namespace Alerting.Controller
                             AlertingTypeInfo.Alert,
                             client.Name)
                     );
+
                     client.State.LastAlerted = DateTime.Now;
                     client.State.StateType = StateTypeInfo.Alerting;
                     await _clientStates.UpdateAsync(client.State);

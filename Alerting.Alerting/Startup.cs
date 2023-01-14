@@ -8,6 +8,10 @@ using Telegram.Bot;
 using Telegram.Bot.Services;
 using CacherServiceClient;
 using System;
+using Alerting.Domain.Redis;
+using Alerting.Infrastructure.Redis;
+using Redis.OM;
+using Alerting.TelegramBot.Dialog;
 
 namespace Alerting.Alerting
 {
@@ -52,6 +56,11 @@ namespace Alerting.Alerting
             services.AddScoped<UpdateHandler>();
             services.AddScoped<ReceiverService>();
             services.AddHostedService<PollingService>();
+
+            services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
+            services.AddHostedService<IndexCreationService<StateMachine>>();
+
+            services.AddPublisher();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
