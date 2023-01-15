@@ -1,6 +1,7 @@
 using Alerting.Infrastructure.Bus;
 using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Redis;
+using MassTransit.Internals.Caching;
 using Microsoft.Extensions.Logging;
 using Redis.OM;
 using Redis.OM.Searching;
@@ -23,6 +24,8 @@ namespace Telegram.Bot.Services;
 
 public class UpdateHandler : IUpdateHandler
 {
+    private const int TTL = 120;
+
     private readonly ITelegramBotClient _botClient;
     private readonly ILogger<UpdateHandler> _logger;
     private readonly CacherClient _cacherClient;
@@ -88,7 +91,7 @@ public class UpdateHandler : IUpdateHandler
                 {
                     "/get_info" => GetInfoHandler(_botClient, message, cancellationToken, _cacherClient, _cachedStateMachines),
                     "/start" => Usage(_botClient, message, cancellationToken),
-                    //"/register" => RegisterHandler(_botClient, message, cancellationToken, _publisher),
+                    "/register" => RegisterHandler(_botClient, message, cancellationToken, _publisher, _cachedStateMachines),
                     _ => Usage(_botClient, message, cancellationToken)
                 };
             }
@@ -106,12 +109,12 @@ public class UpdateHandler : IUpdateHandler
                 await _cachedStateMachines.DeleteAsync(dialogState);
             }
 
-            _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.MessageId);
+            _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage?.MessageId);
 
         }
         catch (Exception ex)
         {
-            _logger.LogInformation("Error BotOnMessageReceived: {SentMessageId}", ex.Message);
+            _logger.LogInformation("Error BotOnMessageReceived: {errorMessage}", ex.Message);
         }
 
         // Send inline keyboard
@@ -246,9 +249,39 @@ public class UpdateHandler : IUpdateHandler
                                                 message.From.Id,
                                                 botMessage.MessageId);
             
-            await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(120));
+            await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(TTL));
 
             return botMessage;
+        }
+
+        static async Task<Message> RegisterHandler(ITelegramBotClient botClient,
+                                                                Message message,
+                                                                CancellationToken cancellationToken,
+                                                                IPublisher publisher,
+                                                                RedisCollection<StateMachine> dialogStateMachine)
+        {
+            try
+            {
+                var botMessage = await botClient.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: "Укажите Имя",
+                            replyMarkup: new ForceReplyMarkup(),
+                            cancellationToken: cancellationToken);
+
+                var state = new RegistrationStateMachine(publisher,
+                                                         botClient,
+                                                         message.Chat.Id,
+                                                         message.From.Id,
+                                                         botMessage.MessageId);
+
+                await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(TTL));
+
+                return botMessage;
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 

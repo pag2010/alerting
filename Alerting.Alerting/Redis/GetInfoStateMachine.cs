@@ -28,7 +28,7 @@ namespace Alerting.TelegramBot.Dialog
             ChatId = chatId;
             UserId = userId;
             LastMessageId = lastMessageId;
-            State = StateType.Initial;
+            State = StateType.WaitingGuid;
             Type = StateMachineType.GetInfo;
         }
 
@@ -47,32 +47,53 @@ namespace Alerting.TelegramBot.Dialog
         }
 
         public override async Task<Message> Action(Message message,
-                                          CancellationToken cancellationToken)
+                                                   CancellationToken cancellationToken)
         {
             Guid id;
 
-            if (Guid.TryParse(message.Text, out id))
+            if (State == StateType.WaitingGuid)
             {
-                var result = await _cacherClient.GetClientInfoAsync(new ClientInfoRequest
+                if (Guid.TryParse(message.Text, out id))
                 {
-                    Id = id.ToString()
-                });
+                    var result = await _cacherClient.GetClientInfoAsync(new ClientInfoRequest
+                    {
+                        Id = id.ToString()
+                    });
 
-                State = StateType.Final;
+                    State = GetNextState();
 
-                return await _botClient.SendTextMessageAsync(
-                       chatId: message.Chat.Id,
-                       text: JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }),
-                       cancellationToken: cancellationToken);
+                    return await _botClient.SendTextMessageAsync(
+                           chatId: message.Chat.Id,
+                           text: JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }),
+                           cancellationToken: cancellationToken);
+                }
+                else
+                {
+                    return await _botClient.SendTextMessageAsync(
+                           chatId: message.Chat.Id,
+                           text: $"Укажите верный GUID",
+                           replyMarkup: new ForceReplyMarkup(),
+                           cancellationToken: cancellationToken);
+                }
             }
-            else
-            {
-                return await _botClient.SendTextMessageAsync(
-                       chatId: message.Chat.Id,
-                       text: $"Укажите верный GUID",
-                       replyMarkup: new ForceReplyMarkup(),
-                       cancellationToken: cancellationToken);
-            }
+            return null;
         }
+
+        protected override StateType GetNextState()
+        {
+            StateType state;
+
+            switch (State)
+            {
+                case StateType.WaitingGuid:
+                    state = StateType.Final;
+                    break;
+                default:
+                    throw new Exception("Не удалось подобрать состояние");
+            }
+
+            return state;
+        }
+
     }
 }

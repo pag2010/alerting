@@ -2,7 +2,11 @@
 {
     public enum StateType
     {
-        Initial,
-        Final
+        WaitingGuid,
+        WaitingName,
+        WaitingWaitingSeconds,
+        WaitingAlertInterval,
+        Final,
+        ToDelete
     }
 }

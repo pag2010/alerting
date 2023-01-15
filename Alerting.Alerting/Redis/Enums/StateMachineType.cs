@@ -2,6 +2,7 @@
 {
     public enum StateMachineType
     {
-        GetInfo
+        GetInfo,
+        Registration,
     }
 }
