@@ -29,6 +29,7 @@ namespace Alerting.TelegramBot.Dialog
         public StateMachine() 
         { 
             Id = Guid.NewGuid();
+            Parameters = new Dictionary<string, string>();
         }
 
         public virtual async Task<Message> Action(Message message, CancellationToken cancellationToken)
@@ -44,6 +45,14 @@ namespace Alerting.TelegramBot.Dialog
         protected virtual string GetMessageText()
         {
             throw new NotSupportedException();
+        }
+
+        protected virtual async Task<Message> ParseMessage(Message message,
+                                                           CancellationToken cancellationToken)
+        {
+            {
+                throw new NotSupportedException();
+            }
         }
     }
 }

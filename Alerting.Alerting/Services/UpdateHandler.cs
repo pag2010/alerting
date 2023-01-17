@@ -8,6 +8,7 @@ using Redis.OM.Searching;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot.Exceptions;
@@ -45,7 +46,7 @@ public class UpdateHandler : IUpdateHandler
         _publisher = publisher;
         _cachedStateMachines =
                 (RedisCollection<StateMachine>)provider.RedisCollection<StateMachine>();
-        _stateMachineFabric = new StateMachineFabric(_botClient, _cacherClient);
+        _stateMachineFabric = new StateMachineFabric(_botClient, _cacherClient, _publisher);
     }
 
     public async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
@@ -99,13 +100,23 @@ public class UpdateHandler : IUpdateHandler
             {
                 stateMachine = _stateMachineFabric.GetStateMachine(dialogState);
                 action = stateMachine.Action(message, cancellationToken);
-                await _cachedStateMachines.UpdateAsync(dialogState);
             }
 
             var sentMessage = await action;
+            if (dialogState != null)
+            {
+                if (sentMessage?.MessageId != null)
+                {
+                    dialogState.LastMessageId = sentMessage?.MessageId;
+                }
+                dialogState.State = stateMachine.State;
+                dialogState.Parameters = stateMachine.Parameters;
+                await _cachedStateMachines.UpdateAsync(dialogState);
+            }
 
             if (stateMachine != null && stateMachine.State == StateType.Final)
             {
+                await stateMachine.Action(message, cancellationToken);
                 await _cachedStateMachines.DeleteAsync(dialogState);
             }
 
@@ -236,19 +247,16 @@ public class UpdateHandler : IUpdateHandler
                                                           CancellationToken cancellationToken,
                                                           CacherClient cacherClient,
                                                           RedisCollection<StateMachine> dialogStateMachine)
-        { 
-            var botMessage = await botClient.SendTextMessageAsync(
-                             chatId: message.Chat.Id,
-                             text: "Укажите guid",
-                             replyMarkup: new ForceReplyMarkup(),
-                             cancellationToken: cancellationToken);
-
+        {
             var state = new GetInfoStateMachine(botClient,
                                                 cacherClient,
                                                 message.Chat.Id,
                                                 message.From.Id,
-                                                botMessage.MessageId);
-            
+                                                lastMessageId: null);
+
+            var botMessage = await state.Action(message, cancellationToken);
+            state.LastMessageId = botMessage.MessageId;
+
             await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(TTL));
 
             return botMessage;
@@ -262,19 +270,16 @@ public class UpdateHandler : IUpdateHandler
         {
             try
             {
-                var botMessage = await botClient.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: "Укажите Имя",
-                            replyMarkup: new ForceReplyMarkup(),
-                            cancellationToken: cancellationToken);
-
                 var state = new RegistrationStateMachine(publisher,
                                                          botClient,
                                                          message.Chat.Id,
                                                          message.From.Id,
-                                                         botMessage.MessageId);
+                                                         null);
 
-                await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(TTL));
+                var botMessage = await state.Action(message, cancellationToken);
+                state.LastMessageId = botMessage.MessageId;
+
+                await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(300));
 
                 return botMessage;
             }
