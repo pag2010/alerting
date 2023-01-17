@@ -10,6 +10,7 @@ namespace Alerting.Domain.Redis
         [Indexed]
         public Guid Id { get; set; }
 
+        [Indexed]
         public string Name { get; set; }
     }
 }
