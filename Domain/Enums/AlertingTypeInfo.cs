@@ -3,6 +3,7 @@
     public enum AlertingTypeInfo
     {
         OK,
-        Alert
+        Alert,
+        RuleRegistrationCompleted
     }
 }

@@ -7,6 +7,8 @@ using Alerting.Domain;
 using System.Threading;
 using System.Security.Cryptography.Xml;
 using System;
+using Alerting.Infrastructure.Bus;
+using Alerting.Domain.State;
 
 namespace Alerting.AlertingRuleConsumer
 {
@@ -15,14 +17,16 @@ namespace Alerting.AlertingRuleConsumer
         private readonly RedisConnectionProvider _provider;
         private readonly RedisCollection<ClientAlertRuleCache> _clientAlertRules;
         private readonly RedisCollection<ClientCache> _clients;
+        private readonly IPublisher _publisher;
 
-        public AlertingRuleConsumer(RedisConnectionProvider provider)
+        public AlertingRuleConsumer(RedisConnectionProvider provider, IPublisher publisher)
         {
             _provider = provider;
             _clientAlertRules =
                 (RedisCollection<ClientAlertRuleCache>)provider.RedisCollection<ClientAlertRuleCache>();
             _clients =
                 (RedisCollection<ClientCache>)provider.RedisCollection<ClientCache>();
+            _publisher = publisher;
         }
 
         public async Task Consume(ConsumeContext<ClientRegistration> context)
@@ -38,6 +42,11 @@ namespace Alerting.AlertingRuleConsumer
                     ChatId = context.Message.ChatId,
                     WaitingSeconds = context.Message.WaitingSeconds
                 });
+
+                await _publisher.Publish(new AlertingState(
+                    alertingType: Domain.Enums.AlertingTypeInfo.RuleRegistrationCompleted,
+                    sender: context.Message.Id,
+                    chatId: context.Message.ChatId));
             }
             else
             {

@@ -2,6 +2,7 @@
 using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Redis.Enums;
 using CacherServiceClient;
+using System;
 using Telegram.Bot;
 
 namespace Alerting.TelegramBot.Redis
@@ -21,13 +22,13 @@ namespace Alerting.TelegramBot.Redis
             _publisher = publisher;
         }
 
-        public StateMachine GetStateMachine(StateMachine stateMachine)
+        public AbstractStateMachine GetStateMachine(StateMachine stateMachine)
         {
-            StateMachine result = stateMachine.Type switch
+            AbstractStateMachine result = stateMachine.Type switch
             {
                 StateMachineType.GetInfo => new GetInfoStateMachine(_botClient, _cacherClient, stateMachine),
                 StateMachineType.Registration => new RegistrationStateMachine(_publisher, _botClient, stateMachine),
-                _ => stateMachine
+                _ => throw new Exception("Неизвестный тип машины состояний")
             };
             return result;
         }

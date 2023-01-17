@@ -78,17 +78,17 @@ public class UpdateHandler : IUpdateHandler
             if (message.Text is not { } messageText)
                 return;
 
-            var dialogStates = await _cachedStateMachines.ToListAsync();
-            var dialogState = dialogStates.SingleOrDefault(state => state.UserId == message.From.Id &&
+            var cachedStates = await _cachedStateMachines.ToListAsync();
+            var cachedState = cachedStates.SingleOrDefault(state => state.UserId == message.From.Id &&
                               state.ChatId == message.Chat.Id &&
                               (message.ReplyToMessage == null || state.LastMessageId == message.ReplyToMessage.MessageId));
-            
-            Task<Message> action;
-            StateMachine stateMachine = null;
 
-            if (dialogState == null)
+            Task<Message> action;
+            AbstractStateMachine stateMachine = null;
+
+            if (cachedState == null)
             {
-                action = messageText.Split(' ')[0] switch
+                action = messageText.Replace("@graphana_pag_bot", null) switch
                 {
                     "/get_info" => GetInfoHandler(_botClient, message, cancellationToken, _cacherClient, _cachedStateMachines),
                     "/start" => Usage(_botClient, message, cancellationToken),
@@ -98,26 +98,26 @@ public class UpdateHandler : IUpdateHandler
             }
             else
             {
-                stateMachine = _stateMachineFabric.GetStateMachine(dialogState);
+                stateMachine = _stateMachineFabric.GetStateMachine(cachedState);
                 action = stateMachine.Action(message, cancellationToken);
             }
 
             var sentMessage = await action;
-            if (dialogState != null)
+            if (cachedState != null)
             {
                 if (sentMessage?.MessageId != null)
                 {
-                    dialogState.LastMessageId = sentMessage?.MessageId;
+                    cachedState.LastMessageId = sentMessage?.MessageId;
                 }
-                dialogState.State = stateMachine.State;
-                dialogState.Parameters = stateMachine.Parameters;
-                await _cachedStateMachines.UpdateAsync(dialogState);
+                cachedState.State = stateMachine.StateMachine.State;
+                cachedState.Parameters = stateMachine.StateMachine.Parameters;
+                await _cachedStateMachines.UpdateAsync(cachedState);
             }
 
-            if (stateMachine != null && stateMachine.State == StateType.Final)
+            if (stateMachine != null && stateMachine.StateMachine.State == StateType.Final)
             {
                 await stateMachine.Action(message, cancellationToken);
-                await _cachedStateMachines.DeleteAsync(dialogState);
+                await _cachedStateMachines.DeleteAsync(cachedState);
             }
 
             _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage?.MessageId);
@@ -211,7 +211,8 @@ public class UpdateHandler : IUpdateHandler
         static async Task<Message> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             const string usage = "Команды:\n" +
-                                 "/get_info {guid} {guid} - Получить информацию по клиенту. Список guid указывается через пробел\n";
+                                 "/get_info - Получить информацию по клиенту.\n" +
+                                 "/register - Зарегистрировать клиента.\n";
 
             return await botClient.SendTextMessageAsync(
                          chatId: message.Chat.Id,
@@ -255,9 +256,9 @@ public class UpdateHandler : IUpdateHandler
                                                 lastMessageId: null);
 
             var botMessage = await state.Action(message, cancellationToken);
-            state.LastMessageId = botMessage.MessageId;
+            state.StateMachine.LastMessageId = botMessage.MessageId;
 
-            await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(TTL));
+            await dialogStateMachine.InsertAsync(state.StateMachine, TimeSpan.FromSeconds(TTL));
 
             return botMessage;
         }
@@ -277,9 +278,9 @@ public class UpdateHandler : IUpdateHandler
                                                          null);
 
                 var botMessage = await state.Action(message, cancellationToken);
-                state.LastMessageId = botMessage.MessageId;
+                state.StateMachine.LastMessageId = botMessage.MessageId;
 
-                await dialogStateMachine.InsertAsync(state, TimeSpan.FromSeconds(300));
+                await dialogStateMachine.InsertAsync(state.StateMachine, TimeSpan.FromSeconds(300));
 
                 return botMessage;
             }
@@ -289,6 +290,7 @@ public class UpdateHandler : IUpdateHandler
             }
         }
     }
+
 
     // Process Inline Keyboard callback data
     private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery, CancellationToken cancellationToken)

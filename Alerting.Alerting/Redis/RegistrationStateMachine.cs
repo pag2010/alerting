@@ -2,6 +2,7 @@
 using Alerting.Infrastructure.Bus;
 using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Redis.Enums;
+using MassTransit.SagaStateMachine;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,10 +12,9 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Alerting.TelegramBot.Redis
 {
-    public class RegistrationStateMachine : StateMachine
+    public class RegistrationStateMachine : AbstractStateMachine
     {
         private readonly IPublisher _publisher;
-        private ITelegramBotClient _botClient;
 
         public RegistrationStateMachine(IPublisher publisher,
                                         ITelegramBotClient botClient)
@@ -31,11 +31,14 @@ namespace Alerting.TelegramBot.Redis
         {
             _botClient = botClient;
             _publisher = publisher;
-            ChatId = chatId;
-            UserId = userId;
-            LastMessageId = lastMessageId;
-            State = StateType.Initial;
-            Type = StateMachineType.Registration;
+            StateMachine = new StateMachine()
+            {
+                ChatId = chatId,
+                UserId = userId,
+                LastMessageId = lastMessageId,
+                State = StateType.Initial,
+                Type = StateMachineType.Registration
+            };
         }
 
         public RegistrationStateMachine(IPublisher publisher,
@@ -44,77 +47,7 @@ namespace Alerting.TelegramBot.Redis
         {
             _botClient = botClient;
             _publisher = publisher;
-            Id = stateMachine.Id;
-            ChatId = stateMachine.ChatId;
-            UserId = stateMachine.UserId;
-            LastMessageId = stateMachine.LastMessageId;
-            State = stateMachine.State;
-            Parameters = stateMachine.Parameters;
-            Type = StateMachineType.Registration;
-        }
-
-        public override async Task<Message> Action(Message message,
-                                                   CancellationToken cancellationToken)
-        {
-            Message botMessage = null;
-
-            switch (State)
-            {
-                case StateType.Initial:
-                    {
-                        State = GetNextState();
-                        string messageText = GetMessageText();
-
-                        return await _botClient.SendTextMessageAsync(
-                                           chatId: message.Chat.Id,
-                                           text: messageText,
-                                           replyMarkup: new ForceReplyMarkup(),
-                                           cancellationToken: cancellationToken);
-                    }
-                case StateType.Final:
-                    {
-                        ClientRegistration client = ParseParameters();
-                        await _publisher.Publish(client);
-
-                        string messageText = GetMessageText();
-
-                        State = GetNextState();
-
-                        return await _botClient.SendTextMessageAsync(
-                                          chatId: message.Chat.Id,
-                                          text: $"{messageText} {client.Id}", /*+ 
-                                                Environment.NewLine + 
-                                                $"Для контроля состояния нужно посылать GET запрос сюда https://pag2010.alerting.keenetic.pro/api/state/publish?sender={client.Id}",*/
-                                          cancellationToken: cancellationToken);
-
-                        break;
-                    }
-                default:
-                    {
-                        botMessage = await ParseMessage(message, cancellationToken);
-
-                        if (botMessage != null)
-                        {
-                            return botMessage;
-                        }
-
-                        State = GetNextState();
-
-                        if (State != StateType.Final)
-                        {
-                            string messageText = GetMessageText();
-
-                            botMessage = await _botClient.SendTextMessageAsync(
-                                               chatId: message.Chat.Id,
-                                               text: messageText,
-                                               replyMarkup: new ForceReplyMarkup(),
-                                               cancellationToken: cancellationToken);
-                        }
-                        break;
-                    }
-            }
-
-            return botMessage;
+            StateMachine = stateMachine;
         }
 
         private ClientRegistration ParseParameters()
@@ -126,16 +59,16 @@ namespace Alerting.TelegramBot.Redis
 
             ClientRegistration result = null;
 
-            bool isNameParsed = Parameters.TryGetValue("Name", out name);
+            bool isNameParsed = StateMachine.Parameters.TryGetValue("Name", out name);
 
-            if (Parameters.TryGetValue("WaitingSeconds", out string parsedWaitingSeconds) && int.TryParse(parsedWaitingSeconds, out waitingSeconds) &&
-                Parameters.TryGetValue("AlertIntervalSeconds", out string parsedAlertIntervalSeconds) && int.TryParse(parsedAlertIntervalSeconds, out alertIntervalSeconds) &&
-                Parameters.TryGetValue("Name", out name))
+            if (StateMachine.Parameters.TryGetValue("WaitingSeconds", out string parsedWaitingSeconds) && int.TryParse(parsedWaitingSeconds, out waitingSeconds) &&
+                StateMachine.Parameters.TryGetValue("AlertIntervalSeconds", out string parsedAlertIntervalSeconds) && int.TryParse(parsedAlertIntervalSeconds, out alertIntervalSeconds) &&
+                StateMachine.Parameters.TryGetValue("Name", out name))
             {
                 result = new ClientRegistration()
                 {
                     AlertIntervalSeconds = alertIntervalSeconds,
-                    ChatId = ChatId,
+                    ChatId = StateMachine.ChatId,
                     Name = name,
                     WaitingSeconds = waitingSeconds,
                     Id = Guid.NewGuid()
@@ -149,7 +82,7 @@ namespace Alerting.TelegramBot.Redis
         {
             StateType state;
 
-            switch (State)
+            switch (StateMachine.State)
             {
                 case StateType.Initial:
                     state = StateType.WaitingName;
@@ -177,7 +110,7 @@ namespace Alerting.TelegramBot.Redis
         {
             string messageText;
 
-            switch (State)
+            switch (StateMachine.State)
             {
                 case StateType.WaitingName:
                     {
@@ -186,17 +119,17 @@ namespace Alerting.TelegramBot.Redis
                     }
                 case StateType.WaitingWaitingSeconds:
                     {
-                        messageText = "Укажите время ожидание до алерта (сек)";
+                        messageText = "Укажите время ожидания до оповещения (сек)";
                         break;
                     }
                 case StateType.WaitingAlertInterval:
                     {
-                        messageText = "Укажите время период напоминаний об алерте (сек)";
+                        messageText = "Укажите период повторных оповещений (сек)";
                         break;
                     }
                 case StateType.Final:
                     {
-                        messageText = "Регистрация завершена";
+                        messageText = "Выполняется регистрация";
                         break;
                     }
                 default:
@@ -208,25 +141,39 @@ namespace Alerting.TelegramBot.Redis
             return messageText;
         }
 
-        protected override async Task<Message> ParseMessage(Message message, CancellationToken cancellationToken)
-            {
+        protected override string ParseMessage(Message message, CancellationToken cancellationToken)
+        {
             string messageText = message.Text;
 
-            switch (State)
+            switch (StateMachine.State)
             {
                 case StateType.WaitingName:
                     {
-                        Parameters.Add("Name", messageText);
+                        StateMachine.Parameters.Add("Name", messageText);
                         break;
                     }
                 case StateType.WaitingWaitingSeconds:
                     {
-                        Parameters.Add("WaitingSeconds", messageText);
+                        if (int.TryParse(messageText, out int seconds) && seconds > 0)
+                        {
+                            StateMachine.Parameters.Add("WaitingSeconds", messageText);
+                        }
+                        else
+                        {
+                            return "Укажите верное кол-во секунд, больше 0";
+                        }
                         break;
                     }
                 case StateType.WaitingAlertInterval:
                     {
-                        Parameters.Add("AlertIntervalSeconds", messageText);
+                        if (int.TryParse(messageText, out int seconds) && seconds > 0)
+                        {
+                            StateMachine.Parameters.Add("AlertIntervalSeconds", messageText);
+                        }
+                        else
+                        {
+                            return "Укажите верное кол-во секунд";
+                        }
                         break;
                     }
                 default:
@@ -235,6 +182,30 @@ namespace Alerting.TelegramBot.Redis
                     }
             }
             return null;
+        }
+
+        protected override async Task<Message> FinalAction(Message message, CancellationToken cancellationToken)
+        {
+            ClientRegistration client = ParseParameters();
+
+            if (client == null)
+            {
+                return await _botClient.SendTextMessageAsync(
+                               chatId: message.Chat.Id,
+                               text: "Регистрация не завершена. Ошибка в вводе данных",
+                               cancellationToken: cancellationToken);
+            }
+
+            await _publisher.Publish(client);
+
+            string messageText = GetMessageText();
+
+            StateMachine.State = GetNextState();
+
+            return await _botClient.SendTextMessageAsync(
+                              chatId: message.Chat.Id,
+                              text: $"{messageText}",
+                              cancellationToken: cancellationToken);
         }
     }
 }

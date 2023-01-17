@@ -34,6 +34,8 @@ namespace Alerting.AlertingRuleConsumer
                 connection.Password = Configuration["Bus:Password"];
             },
            "AlertRuleRegistration");
+
+            services.AddTransient<IPublisher, Publisher>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

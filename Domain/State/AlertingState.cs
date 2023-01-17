@@ -18,6 +18,17 @@ namespace Alerting.Domain.State
             Name = name;
         }
 
+        public AlertingState(
+            Guid sender,
+            long chatId,
+            AlertingTypeInfo alertingType) : base(sender)
+        {
+            ChatId = chatId;
+            AlertingType = alertingType;
+        }
+
+        public AlertingState() { }
+
         public string Name { get; set; }
         public long ChatId { get; set; }
         public DateTime LastActive { get; set; }

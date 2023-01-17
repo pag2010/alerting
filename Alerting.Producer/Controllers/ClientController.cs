@@ -37,8 +37,6 @@ namespace Alerting.Producer.Controllers
                 Id = guid
             });
 
-            await _publisher.Publish(new State(guid));
-
             return guid;
         }
 

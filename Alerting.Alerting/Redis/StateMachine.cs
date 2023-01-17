@@ -1,4 +1,5 @@
-﻿using Alerting.TelegramBot.Redis.Enums;
+﻿using Alerting.TelegramBot.Redis;
+using Alerting.TelegramBot.Redis.Enums;
 using Redis.OM.Modeling;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using Telegram.Bot.Types;
 namespace Alerting.TelegramBot.Dialog
 {
     [Document(StorageType = StorageType.Json, Prefixes = new[] { "TelegramBotStateMachine" })]
-    public class StateMachine : IStateMachine
+    public class StateMachine
     {
         [RedisIdField]
         public Guid Id { get; set; }
@@ -30,29 +31,6 @@ namespace Alerting.TelegramBot.Dialog
         { 
             Id = Guid.NewGuid();
             Parameters = new Dictionary<string, string>();
-        }
-
-        public virtual async Task<Message> Action(Message message, CancellationToken cancellationToken)
-        {
-            throw new NotSupportedException();
-        }
-
-        protected virtual StateType GetNextState()
-        {
-            throw new NotSupportedException();
-        }
-
-        protected virtual string GetMessageText()
-        {
-            throw new NotSupportedException();
-        }
-
-        protected virtual async Task<Message> ParseMessage(Message message,
-                                                           CancellationToken cancellationToken)
-        {
-            {
-                throw new NotSupportedException();
-            }
-        }
+        } 
     }
 }
