@@ -12,7 +12,7 @@ using Alerting.Domain.State;
 
 namespace Alerting.AlertingRuleConsumer
 {
-    public class AlertingRuleConsumer : IConsumer<ClientRegistration>
+    public class AlertingRuleConsumer : IConsumer<ClientRuleRegistration>
     {
         private readonly RedisConnectionProvider _provider;
         private readonly RedisCollection<ClientAlertRuleCache> _clientAlertRules;
@@ -29,9 +29,9 @@ namespace Alerting.AlertingRuleConsumer
             _publisher = publisher;
         }
 
-        public async Task Consume(ConsumeContext<ClientRegistration> context)
+        public async Task Consume(ConsumeContext<ClientRuleRegistration> context)
         {
-            var registeredClient = await _clients.SingleOrDefaultAsync(ca => ca.Id == context.Message.Id);
+            var registeredClient = await _clients.SingleOrDefaultAsync(c => c.Id == context.Message.Id);
             if (registeredClient != null)
             {
                 await _clientAlertRules.InsertAsync(new ClientAlertRuleCache
