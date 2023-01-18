@@ -34,7 +34,7 @@ services:
 
   alerting.alerting:
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Release
       - ASPNETCORE_URLS=http://+:80
     ports:
       - "80"
