@@ -4,6 +4,7 @@
     {
         OK,
         Alert,
-        RuleRegistrationCompleted
+        RuleRegistrationCompleted,
+        UnregistrationCompleted
     }
 }

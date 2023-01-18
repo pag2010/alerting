@@ -28,6 +28,7 @@ namespace Alerting.TelegramBot.Redis
             {
                 StateMachineType.GetInfo => new GetInfoStateMachine(_botClient, _cacherClient, stateMachine),
                 StateMachineType.Registration => new RegistrationStateMachine(_publisher, _botClient, stateMachine),
+                StateMachineType.Unregistration => new UnregistrationStateMachine(_publisher, _botClient, stateMachine),
                 _ => throw new Exception("Неизвестный тип машины состояний")
             };
             return result;

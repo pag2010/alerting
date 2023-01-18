@@ -12,8 +12,10 @@ namespace Alerting.Alerting
 {
     public class AlertingConsumer : IConsumer<AlertingState>
     {
+        private const string HOST = "alerting.pag2010.keenetic.pro";
         private readonly ITelegramBotClient _botClient;
         private readonly ILogger<AlertingConsumer> _logger;
+
         public AlertingConsumer(ITelegramBotClient botClient, ILogger<AlertingConsumer> logger) 
             : base()
         {
@@ -56,7 +58,16 @@ namespace Alerting.Alerting
                         {
                             message = await _botClient.SendTextMessageAsync(
                                 chatId: alert.ChatId,
-                                text: $"Регистрация клиента {alert.Sender} успешно завершена. Для контроля состояния нужно посылать GET запрос сюда https://pag2010.alerting.keenetic.pro/api/state/publish?sender={alert.Sender}"
+                                text: $"Регистрация клиента {alert.Sender} успешно завершена. Для контроля состояния нужно посылать GET запрос сюда https://{HOST}/api/state/publish?sender={alert.Sender}",
+                                disableWebPagePreview: true
+                             );
+                            break;
+                        }
+                    case AlertingTypeInfo.UnregistrationCompleted:
+                        {
+                            message = await _botClient.SendTextMessageAsync(
+                                chatId: alert.ChatId,
+                                text: $"Разрегистрация клиента {alert.Sender} успешно завершена."
                              );
                             break;
                         }

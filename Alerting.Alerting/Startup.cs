@@ -12,6 +12,7 @@ using Alerting.Domain.Redis;
 using Alerting.Infrastructure.Redis;
 using Redis.OM;
 using Alerting.TelegramBot.Dialog;
+using Alerting.TelegramBot.Bot;
 
 namespace Alerting.Alerting
 {
@@ -52,6 +53,8 @@ namespace Alerting.Alerting
             {
                 o.Address = new Uri(Configuration["CacherService"]);
             });
+
+            services.AddSingleton(new BotInfo(Configuration["BotConfiguration:BotName"]));
 
             services.AddScoped<UpdateHandler>();
             services.AddScoped<ReceiverService>();

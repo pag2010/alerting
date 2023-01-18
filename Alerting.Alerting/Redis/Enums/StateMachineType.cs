@@ -4,5 +4,6 @@
     {
         GetInfo,
         Registration,
+        Unregistration
     }
 }

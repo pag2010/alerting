@@ -54,7 +54,6 @@ namespace Alerting.TelegramBot.Redis
         {
             int alertIntervalSeconds;
             int waitingSeconds;
-            long chatId;
             string name;
 
             ClientRegistration result = null;

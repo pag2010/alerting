@@ -4,9 +4,9 @@ using MassTransit;
 using Redis.OM.Searching;
 using Redis.OM;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
 using System;
+using Alerting.Infrastructure.Bus;
+using Alerting.Domain.State;
 
 namespace Alerting.ClientRegistrationConsumer
 {
@@ -16,8 +16,9 @@ namespace Alerting.ClientRegistrationConsumer
         private readonly RedisCollection<ClientCache> _clients;
         private readonly RedisCollection<ClientAlertRuleCache> _clientAlertRules;
         private readonly RedisCollection<ClientStateCache> _clientStates;
+        private readonly IPublisher _publisher;
 
-        public ClientUnregisterConsumer(RedisConnectionProvider provider)
+        public ClientUnregisterConsumer(RedisConnectionProvider provider, IPublisher publisher)
         {
             _provider = provider;
             _clients =
@@ -26,6 +27,7 @@ namespace Alerting.ClientRegistrationConsumer
                 (RedisCollection<ClientAlertRuleCache>)provider.RedisCollection<ClientAlertRuleCache>();
             _clientStates =
                 (RedisCollection<ClientStateCache>)provider.RedisCollection<ClientStateCache>();
+            _publisher = publisher;
         }
 
         public async Task Consume(ConsumeContext<ClientUnregister> context)
@@ -33,6 +35,7 @@ namespace Alerting.ClientRegistrationConsumer
             var id = context.Message.Id;
 
             var client = await _clients.SingleOrDefaultAsync(s => s.Id == id);
+            var rules = await _clientAlertRules.Where(ar => ar.ClientId == id).ToListAsync();
 
             if (client == null)
             {
@@ -44,6 +47,16 @@ namespace Alerting.ClientRegistrationConsumer
             await DeleteRulesAsync(id);
 
             await _clients.DeleteAsync(client);
+
+            foreach (var rule in rules)
+            {
+                await _publisher.Publish(new AlertingState()
+                {
+                    AlertingType = Domain.Enums.AlertingTypeInfo.UnregistrationCompleted,
+                    ChatId = rule.ChatId,
+                    Sender = id
+                });
+            }
 
             return;
         }
