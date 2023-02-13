@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacherServiceClient", "Cach
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProcessingConsole", "ProcessingConsole\ProcessingConsole.csproj", "{74114F8D-81A2-431E-85AE-4B3FA907103D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Entities", "Entities\Entities.csproj", "{97478817-BC1F-46E7-AF4F-DC185A1FC926}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +83,10 @@ Global
 		{74114F8D-81A2-431E-85AE-4B3FA907103D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{74114F8D-81A2-431E-85AE-4B3FA907103D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{74114F8D-81A2-431E-85AE-4B3FA907103D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97478817-BC1F-46E7-AF4F-DC185A1FC926}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97478817-BC1F-46E7-AF4F-DC185A1FC926}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97478817-BC1F-46E7-AF4F-DC185A1FC926}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97478817-BC1F-46E7-AF4F-DC185A1FC926}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

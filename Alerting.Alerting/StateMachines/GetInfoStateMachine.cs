@@ -9,7 +9,7 @@ using CacherServiceClient;
 using Alerting.TelegramBot.Redis.Enums;
 using Redis.OM.Modeling;
 using Alerting.TelegramBot.Redis;
-using MassTransit.Logging;
+using Alerting.TelegramBot.StateMachines;
 
 namespace Alerting.TelegramBot.Dialog
 {
@@ -23,26 +23,25 @@ namespace Alerting.TelegramBot.Dialog
                                    long chatId,
                                    long userId,
                                    long? lastMessageId)
+            :base(botClient, new StateMachine()
+                                {
+                                    ChatId = chatId,
+                                    UserId = userId,
+                                    LastMessageId = lastMessageId,
+                                    State = StateType.Initial,
+                                    Type = StateMachineType.GetInfo
+                                })
         {
             _botClient = botClient;
             _cacherClient = cacherClient;
-            StateMachine = new StateMachine()
-            {
-                ChatId = chatId,
-                UserId = userId,
-                LastMessageId = lastMessageId,
-                State = StateType.Initial,
-                Type = StateMachineType.GetInfo
-            };
         }
 
         public GetInfoStateMachine(ITelegramBotClient botClient,
                                    Cacher.CacherClient cacherClient,
                                    StateMachine stateMachine)
+            : base(botClient, stateMachine)
         {
-            _botClient = botClient;
             _cacherClient = cacherClient;
-            StateMachine = stateMachine;
         }
 
         protected override StateType GetNextState()
@@ -73,7 +72,7 @@ namespace Alerting.TelegramBot.Dialog
             return state;
         }
 
-        protected override string GetMessageText()
+        protected override MessageModel GetMessageModel()
         {
             string messageText;
 
@@ -90,10 +89,10 @@ namespace Alerting.TelegramBot.Dialog
                     }
             }
 
-            return messageText;
+            return new MessageModel(messageText, new ForceReplyMarkup());
         }
 
-        protected override string ParseMessage(Message message, CancellationToken cancellationToken)
+        protected override MessageModel ParseMessage(Message message, CancellationToken cancellationToken)
         {
             string messageText = message.Text;
 
@@ -107,7 +106,7 @@ namespace Alerting.TelegramBot.Dialog
                         }
                         else
                         {
-                            return "Укажите верный GUID";
+                            return new MessageModel("Укажите верный GUID", new ForceReplyMarkup());
                         }
                         break;
                     }
@@ -134,7 +133,7 @@ namespace Alerting.TelegramBot.Dialog
 
                 return await _botClient.SendTextMessageAsync(
                        chatId: message.Chat.Id,
-                       text: JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }),
+                       text: JsonSerializer.Serialize(result, _jsonSerializerOptions),
                        cancellationToken: cancellationToken);
             }
             else

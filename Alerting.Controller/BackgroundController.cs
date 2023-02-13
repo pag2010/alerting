@@ -13,6 +13,7 @@ using MassTransit;
 using Microsoft.Extensions.Logging;
 using Alerting.Domain.State;
 using Alerting.Domain.Enums;
+using Alerting.Entities;
 
 namespace Alerting.Controller
 {

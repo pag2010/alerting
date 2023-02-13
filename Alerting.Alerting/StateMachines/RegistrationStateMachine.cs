@@ -2,7 +2,7 @@
 using Alerting.Infrastructure.Bus;
 using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Redis.Enums;
-using MassTransit.SagaStateMachine;
+using Alerting.TelegramBot.StateMachines;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,37 +17,28 @@ namespace Alerting.TelegramBot.Redis
         private readonly IPublisher _publisher;
 
         public RegistrationStateMachine(IPublisher publisher,
-                                        ITelegramBotClient botClient)
-        {
-            _publisher = publisher;
-            _botClient = botClient;
-        }
-
-        public RegistrationStateMachine(IPublisher publisher,
                                         ITelegramBotClient botClient,
                                         long chatId,
                                         long userId,
                                         long? lastMessageId)
+            : base(botClient, new StateMachine()
+                                {
+                                    ChatId = chatId,
+                                    UserId = userId,
+                                    LastMessageId = lastMessageId,
+                                    State = StateType.Initial,
+                                    Type = StateMachineType.Registration
+                                })
         {
-            _botClient = botClient;
             _publisher = publisher;
-            StateMachine = new StateMachine()
-            {
-                ChatId = chatId,
-                UserId = userId,
-                LastMessageId = lastMessageId,
-                State = StateType.Initial,
-                Type = StateMachineType.Registration
-            };
         }
 
         public RegistrationStateMachine(IPublisher publisher,
                                         ITelegramBotClient botClient,
                                         StateMachine stateMachine)
+            :base(botClient, stateMachine)
         {
-            _botClient = botClient;
             _publisher = publisher;
-            StateMachine = stateMachine;
         }
 
         private ClientRegistration ParseParameters()
@@ -105,7 +96,7 @@ namespace Alerting.TelegramBot.Redis
             return state;
         }
 
-        protected override string GetMessageText()
+        protected override MessageModel GetMessageModel()
         {
             string messageText;
 
@@ -137,10 +128,10 @@ namespace Alerting.TelegramBot.Redis
                     }
             }
 
-            return messageText;
+            return new MessageModel(messageText, new ForceReplyMarkup());
         }
 
-        protected override string ParseMessage(Message message, CancellationToken cancellationToken)
+        protected override MessageModel ParseMessage(Message message, CancellationToken cancellationToken)
         {
             string messageText = message.Text;
 
@@ -159,7 +150,7 @@ namespace Alerting.TelegramBot.Redis
                         }
                         else
                         {
-                            return "Укажите верное кол-во секунд, больше 0";
+                            return new MessageModel("Укажите верное кол-во секунд, больше 0", new ForceReplyMarkup());
                         }
                         break;
                     }
@@ -171,7 +162,7 @@ namespace Alerting.TelegramBot.Redis
                         }
                         else
                         {
-                            return "Укажите верное кол-во секунд";
+                            return new MessageModel("Укажите верное кол-во секунд", new ForceReplyMarkup());
                         }
                         break;
                     }
@@ -197,13 +188,14 @@ namespace Alerting.TelegramBot.Redis
 
             await _publisher.Publish(client);
 
-            string messageText = GetMessageText();
+            MessageModel messageModel = GetMessageModel();
 
             StateMachine.State = GetNextState();
 
             return await _botClient.SendTextMessageAsync(
                               chatId: message.Chat.Id,
-                              text: $"{messageText}",
+                              text: messageModel.Text,
+                              replyMarkup: messageModel.ReplyMarkup,
                               cancellationToken: cancellationToken);
         }
     }

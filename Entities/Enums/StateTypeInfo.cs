@@ -1,4 +1,4 @@
-﻿namespace Alerting.Domain.Enums
+﻿namespace Alerting.Entities
 {
     public enum StateTypeInfo
     {

@@ -5,16 +5,31 @@ using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
+using System.Text.Json;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
+using Alerting.TelegramBot.StateMachines;
 
 namespace Alerting.TelegramBot.Redis
 {
     public abstract class AbstractStateMachine : IStateMachine
     {
         protected ITelegramBotClient _botClient;
+        protected JsonSerializerOptions _jsonSerializerOptions;
 
-        public StateMachine StateMachine { get; set; }
+        protected AbstractStateMachine(ITelegramBotClient botClient, StateMachine stateMachine)
+        {
+            _jsonSerializerOptions = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic),
+                WriteIndented = true
+            };
 
-        //public abstract Task<Message> Action(Message message, CancellationToken cancellationToken);
+            StateMachine = stateMachine;
+            _botClient = botClient;
+        }
+
+        public StateMachine StateMachine { get; protected set; }
 
         protected abstract Task<Message> FinalAction(Message message, CancellationToken cancellationToken);
 
@@ -28,12 +43,12 @@ namespace Alerting.TelegramBot.Redis
                 case StateType.Initial:
                     {
                         StateMachine.State = GetNextState();
-                        string messageText = GetMessageText();
+                        MessageModel messageModel = GetMessageModel();
 
                         return await _botClient.SendTextMessageAsync(
                                            chatId: message.Chat.Id,
-                                           text: messageText,
-                                           replyMarkup: new ForceReplyMarkup(),
+                                           text: messageModel.Text,
+                                           replyMarkup: messageModel.ReplyMarkup,
                                            cancellationToken: cancellationToken);
                     }
                 case StateType.Final:
@@ -42,25 +57,25 @@ namespace Alerting.TelegramBot.Redis
                     }
                 default:
                     {
-                        string messageText = ParseMessage(message, cancellationToken);
+                        MessageModel messageModel = ParseMessage(message, cancellationToken);
 
-                        if (messageText == null)
+                        if (messageModel == null)
                         {
 
                             StateMachine.State = GetNextState();
 
                             if (StateMachine.State != StateType.Final)
                             {
-                                messageText = GetMessageText();
+                                messageModel = GetMessageModel();
                             }
                         }
 
-                        if (messageText != null)
+                        if (messageModel != null)
                         {
                             botMessage = await _botClient.SendTextMessageAsync(
                                                    chatId: message.Chat.Id,
-                                                   text: messageText,
-                                                   replyMarkup: new ForceReplyMarkup(),
+                                                   text: messageModel.Text,
+                                                   replyMarkup: messageModel.ReplyMarkup,
                                                    cancellationToken: cancellationToken);
                         }
 
@@ -73,9 +88,9 @@ namespace Alerting.TelegramBot.Redis
 
         protected abstract StateType GetNextState();
 
-        protected abstract string GetMessageText();
+        protected abstract MessageModel GetMessageModel();
 
-        protected abstract string ParseMessage(Message message,
-                                                           CancellationToken cancellationToken);
+        protected abstract MessageModel ParseMessage(Message message,
+                                               CancellationToken cancellationToken);
     }
 }

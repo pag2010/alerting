@@ -4,6 +4,7 @@
     {
         GetInfo,
         Registration,
-        Unregistration
+        Unregistration,
+        Edit
     }
 }

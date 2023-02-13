@@ -130,10 +130,11 @@ public class UpdateHandler : IUpdateHandler
 
         static async Task<Message> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            string usage = "Команды:" + Environment.NewLine +
-                           "/get_info - Получить информацию по клиенту." + Environment.NewLine +
-                           "/register - Зарегистрировать клиента." + Environment.NewLine +
-                           "/unregister - Разрегистрировать клиента.";
+            string usage = "Команды:\n" +
+                           "/get_info - Получить информацию по клиенту.\n" +
+                           "/register - Зарегистрировать клиента.\n" +
+                           "/unregister - Разрегистрировать клиента.\n"+
+                           "/edit - Изменить клиента";
 
             return await botClient.SendTextMessageAsync(
                          chatId: message.Chat.Id,

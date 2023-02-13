@@ -11,6 +11,7 @@ using System;
 using System.Threading.Tasks;
 using State = Alerting.Domain.State.State;
 using Microsoft.Extensions.Logging;
+using Alerting.Entities;
 
 namespace Alerting.Consumer
 {

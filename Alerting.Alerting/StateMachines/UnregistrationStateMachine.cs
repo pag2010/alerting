@@ -2,12 +2,13 @@
 using Alerting.Infrastructure.Bus;
 using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Redis.Enums;
+using Alerting.TelegramBot.StateMachines;
 using System;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Alerting.TelegramBot.Redis
 {
@@ -16,38 +17,30 @@ namespace Alerting.TelegramBot.Redis
         private readonly IPublisher _publisher;
 
         public UnregistrationStateMachine(IPublisher publisher,
-                                          ITelegramBotClient botClient)
-        {
-            _publisher = publisher;
-            _botClient = botClient;
-        }
-
-        public UnregistrationStateMachine(IPublisher publisher,
                                           ITelegramBotClient botClient,
                                           long chatId,
                                           long userId,
                                           long? lastMessageId)
+            :base(botClient, new StateMachine()
+                                {
+                                    ChatId = chatId,
+                                    UserId = userId,
+                                    LastMessageId = lastMessageId,
+                                    State = StateType.Initial,
+                                    Type = StateMachineType.Unregistration
+                                })
         {
-            _botClient = botClient;
             _publisher = publisher;
-            StateMachine = new StateMachine()
-            {
-                ChatId = chatId,
-                UserId = userId,
-                LastMessageId = lastMessageId,
-                State = StateType.Initial,
-                Type = StateMachineType.Unregistration
-            };
         }
 
         public UnregistrationStateMachine(IPublisher publisher,
                                           ITelegramBotClient botClient,
                                           StateMachine stateMachine)
+            :base(botClient, stateMachine)
         {
-            _botClient = botClient;
             _publisher = publisher;
-            StateMachine = stateMachine;
         }
+
         protected override async Task<Message> FinalAction(Message message, CancellationToken cancellationToken)
         {
             string id;
@@ -68,7 +61,7 @@ namespace Alerting.TelegramBot.Redis
             }
         }
 
-        protected override string GetMessageText()
+        protected override MessageModel GetMessageModel()
         {
             string messageText;
 
@@ -85,7 +78,7 @@ namespace Alerting.TelegramBot.Redis
                     }
             }
 
-            return messageText;
+            return new MessageModel(messageText, new ForceReplyMarkup());
         }
 
         protected override StateType GetNextState()
@@ -116,7 +109,7 @@ namespace Alerting.TelegramBot.Redis
             return state;
         }
 
-        protected override string ParseMessage(Message message, CancellationToken cancellationToken)
+        protected override MessageModel ParseMessage(Message message, CancellationToken cancellationToken)
         {
             string messageText = message.Text;
 
@@ -130,7 +123,7 @@ namespace Alerting.TelegramBot.Redis
                         }
                         else
                         {
-                            return "Укажите верный GUID";
+                            return new MessageModel("Укажите верный GUID", new ForceReplyMarkup());
                         }
                         break;
                     }

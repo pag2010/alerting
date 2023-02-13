@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Alerting.Infrastructure\Alerting.Infrastructure.csproj" />
     <ProjectReference Include="..\Domain\Alerting.Domain.csproj" />
+    <ProjectReference Include="..\Entities\Entities.csproj" />
   </ItemGroup>
 
 

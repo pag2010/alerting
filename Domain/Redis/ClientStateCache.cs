@@ -1,4 +1,5 @@
 ﻿using Alerting.Domain.Enums;
+using Alerting.Entities;
 using Redis.OM.Modeling;
 using System;
 
