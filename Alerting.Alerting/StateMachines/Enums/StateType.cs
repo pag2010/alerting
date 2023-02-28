@@ -7,6 +7,8 @@
         WaitingName,
         WaitingWaitingSeconds,
         WaitingAlertInterval,
+        WaitingFieldForChange,
+        WaitingNewValueForChange,
         Final,
         ToDelete
     }

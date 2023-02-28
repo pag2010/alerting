@@ -1,14 +1,12 @@
+using Alerting.Domain.Repositories.Interfaces;
 using Alerting.Infrastructure.Bus;
 using Alerting.TelegramBot.Bot;
 using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Redis;
-using MassTransit.Initializers.TypeConverters;
-using MassTransit.Internals.Caching;
+using Alerting.TelegramBot.Repository;
+using Alerting.TelegramBot.StateMachines;
 using Microsoft.Extensions.Logging;
-using Redis.OM;
-using Redis.OM.Searching;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +15,6 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using static CacherServiceClient.Cacher;
-using StateMachine = Alerting.TelegramBot.Dialog.StateMachine;
 using StateType = Alerting.TelegramBot.Redis.Enums.StateType;
 
 namespace Telegram.Bot.Services;
@@ -30,25 +27,38 @@ public class UpdateHandler : IUpdateHandler
     private readonly ILogger<UpdateHandler> _logger;
     private readonly CacherClient _cacherClient;
     private readonly IPublisher _publisher;
-    private readonly RedisCollection<StateMachine> _cachedStateMachines;
     private readonly StateMachineFabric _stateMachineFabric;
     private readonly BotInfo _botInfo;
+    private readonly IStateMachineRepository _stateMachineRepository;
+    private readonly IClientRuleRepository _clientRuleRepository;
+    private readonly IClientRepository _clientRepository;
+    private readonly string[] _commands = new string[] 
+    {
+        "/get_info",
+        "/start",
+        "/register",
+        "/unregister",
+        "/edit"
+    };
 
     public UpdateHandler(ITelegramBotClient botClient,
                          ILogger<UpdateHandler> logger,
                          CacherClient cacherClient,
                          IPublisher publisher,
-                         RedisConnectionProvider provider,
-                         BotInfo botInfo)
+                         BotInfo botInfo,
+                         IStateMachineRepository stateMachineRepository,
+                         IClientRuleRepository clientRuleRepository,
+                         IClientRepository clientRepository)
     {
         _botClient = botClient;
         _logger = logger;
         _cacherClient = cacherClient;
         _publisher = publisher;
-        _cachedStateMachines =
-                (RedisCollection<StateMachine>)provider.RedisCollection<StateMachine>();
-        _stateMachineFabric = new StateMachineFabric(_botClient, _cacherClient, _publisher);
+        _clientRuleRepository = clientRuleRepository;
+        _clientRepository = clientRepository;
+        _stateMachineFabric = new StateMachineFabric(_botClient, _cacherClient, _publisher, _clientRuleRepository, _clientRepository);
         _botInfo = botInfo;
+        _stateMachineRepository = stateMachineRepository;
     }
 
     public async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
@@ -63,10 +73,64 @@ public class UpdateHandler : IUpdateHandler
             // UpdateType.Poll:
             { Message: { } message }                       => BotOnMessageReceived(message, cancellationToken),
             { EditedMessage: { } message }                 => BotOnMessageReceived(message, cancellationToken),
+            { CallbackQuery: { } callbackQuery }           => BotOnCallbackQueryReceived(callbackQuery, cancellationToken),
             _                                              => UnknownUpdateHandlerAsync(update, cancellationToken)
         };
 
         await handler;
+    }
+
+    private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Received callback query from: {CallbackQueryFromId}", callbackQuery.From.Id);
+
+        var message = callbackQuery.Message;
+        var cachedStates = await _stateMachineRepository.GetStateMachinesAsync();
+        var cachedState = cachedStates.SingleOrDefault(state => state.UserId == callbackQuery.From.Id &&
+                          state.ChatId == message.Chat.Id);
+
+        //await _botClient.AnswerCallbackQueryAsync(ыя
+        //    callbackQueryId: callbackQuery.Id,
+        //    text: $"Received {callbackQuery.Data}",
+        //    cancellationToken: cancellationToken);
+
+        //await _botClient.SendTextMessageAsync(
+        //    chatId: callbackQuery.Message!.Chat.Id,
+        //    text: $"Received {callbackQuery.Data}",
+        //    cancellationToken: cancellationToken);
+
+        var stateMachine = _stateMachineFabric.GetStateMachine(cachedState);
+        var action = stateMachine.Action(callbackQuery, cancellationToken);
+
+        var sentMessage = await action;
+
+        await UpdateOrDeleteStateMachine(cachedState, stateMachine, sentMessage, message, cancellationToken);
+
+        await _botClient.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, cancellationToken);
+    }
+
+    private async Task UpdateOrDeleteStateMachine(StateMachine cachedState,
+                                                  AbstractStateMachine stateMachine,
+                                                  Message sentMessage,
+                                                  Message originalMessage,
+                                                  CancellationToken cancellationToken)
+    {
+        if (cachedState != null)
+        {
+            if (sentMessage?.MessageId != null)
+            {
+                cachedState.LastMessageId = sentMessage?.MessageId;
+            }
+            cachedState.State = stateMachine.StateMachine.State;
+            cachedState.Parameters = stateMachine.StateMachine.Parameters;
+            await _stateMachineRepository.UpdateAsync(cachedState);
+        }
+
+        if (stateMachine != null && stateMachine.StateMachine.State == StateType.Final)
+        {
+            await stateMachine.Action(originalMessage, cancellationToken);
+            await _stateMachineRepository.DeleteAsync(cachedState);
+        }
     }
 
     private async Task BotOnMessageReceived(Message message, CancellationToken cancellationToken)
@@ -77,22 +141,29 @@ public class UpdateHandler : IUpdateHandler
             if (message.Text is not { } messageText)
                 return;
 
-            var cachedStates = await _cachedStateMachines.ToListAsync();
+            var cachedStates = await _stateMachineRepository.GetStateMachinesAsync();
             var cachedState = cachedStates.SingleOrDefault(state => state.UserId == message.From.Id &&
                               state.ChatId == message.Chat.Id &&
                               (message.ReplyToMessage == null || state.LastMessageId == message.ReplyToMessage.MessageId));
 
             Task<Message> action;
             AbstractStateMachine stateMachine = null;
-
-            if (cachedState == null)
+            var commandText = messageText.Replace(_botInfo.Name, null);
+            if (cachedState == null || _commands.Contains(commandText))
             {
-                action = messageText.Replace(_botInfo.Name, null) switch
+                if (cachedState != null)
                 {
-                    "/get_info" => GetInfoHandler(_botClient, message, cancellationToken, _cacherClient, _cachedStateMachines),
+                    await _stateMachineRepository.DeleteAsync(cachedState);
+                    cachedState = null;
+                }
+
+                action = commandText switch
+                {
+                    "/get_info" => GetInfoHandler(_botClient, message, cancellationToken, _cacherClient, _stateMachineRepository),
                     "/start" => Usage(_botClient, message, cancellationToken),
-                    "/register" => RegisterHandler(_botClient, message, cancellationToken, _publisher, _cachedStateMachines),
-                    "/unregister" =>UnregisterHandler(_botClient, message, cancellationToken, _publisher, _cachedStateMachines),
+                    "/register" => RegisterHandler(_botClient, message, cancellationToken, _publisher, _stateMachineRepository),
+                    "/unregister" => UnregisterHandler(_botClient, message, cancellationToken, _publisher, _stateMachineRepository),
+                    "/edit" => EditHandler(_botClient, message, cancellationToken, _publisher, _stateMachineRepository, _clientRuleRepository, _clientRepository),
                     _ => Usage(_botClient, message, cancellationToken)
                 };
             }
@@ -103,22 +174,7 @@ public class UpdateHandler : IUpdateHandler
             }
 
             var sentMessage = await action;
-            if (cachedState != null)
-            {
-                if (sentMessage?.MessageId != null)
-                {
-                    cachedState.LastMessageId = sentMessage?.MessageId;
-                }
-                cachedState.State = stateMachine.StateMachine.State;
-                cachedState.Parameters = stateMachine.StateMachine.Parameters;
-                await _cachedStateMachines.UpdateAsync(cachedState);
-            }
-
-            if (stateMachine != null && stateMachine.StateMachine.State == StateType.Final)
-            {
-                await stateMachine.Action(message, cancellationToken);
-                await _cachedStateMachines.DeleteAsync(cachedState);
-            }
+            await UpdateOrDeleteStateMachine(cachedState, stateMachine, sentMessage, message, cancellationToken);
 
             _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage?.MessageId);
 
@@ -134,7 +190,7 @@ public class UpdateHandler : IUpdateHandler
                            "/get_info - Получить информацию по клиенту.\n" +
                            "/register - Зарегистрировать клиента.\n" +
                            "/unregister - Разрегистрировать клиента.\n"+
-                           "/edit - Изменить клиента";
+                           "/edit - Изменить клиента.";
 
             return await botClient.SendTextMessageAsync(
                          chatId: message.Chat.Id,
@@ -147,7 +203,7 @@ public class UpdateHandler : IUpdateHandler
                                                           Message message,
                                                           CancellationToken cancellationToken,
                                                           CacherClient cacherClient,
-                                                          RedisCollection<StateMachine> dialogStateMachine)
+                                                          IStateMachineRepository stateMachineRepository)
         {
             var state = new GetInfoStateMachine(botClient,
                                                 cacherClient,
@@ -158,7 +214,7 @@ public class UpdateHandler : IUpdateHandler
             var botMessage = await state.Action(message, cancellationToken);
             state.StateMachine.LastMessageId = botMessage.MessageId;
 
-            await dialogStateMachine.InsertAsync(state.StateMachine, TimeSpan.FromSeconds(TTL));
+            await stateMachineRepository.InsertAsync(state.StateMachine, TTL);
 
             return botMessage;
         }
@@ -167,7 +223,7 @@ public class UpdateHandler : IUpdateHandler
                                                    Message message,
                                                    CancellationToken cancellationToken,
                                                    IPublisher publisher,
-                                                   RedisCollection<StateMachine> dialogStateMachine)
+                                                   IStateMachineRepository stateMachineRepository)
         {
             var state = new RegistrationStateMachine(publisher,
                                                      botClient,
@@ -178,7 +234,7 @@ public class UpdateHandler : IUpdateHandler
             var botMessage = await state.Action(message, cancellationToken);
             state.StateMachine.LastMessageId = botMessage.MessageId;
 
-            await dialogStateMachine.InsertAsync(state.StateMachine, TimeSpan.FromSeconds(300));
+            await stateMachineRepository.InsertAsync(state.StateMachine, 300);
 
             return botMessage;
         }
@@ -187,7 +243,7 @@ public class UpdateHandler : IUpdateHandler
                                                    Message message,
                                                    CancellationToken cancellationToken,
                                                    IPublisher publisher,
-                                                   RedisCollection<StateMachine> dialogStateMachine)
+                                                   IStateMachineRepository stateMachineRepository)
         {
             var state = new UnregistrationStateMachine(publisher,
                                                      botClient,
@@ -198,7 +254,31 @@ public class UpdateHandler : IUpdateHandler
             var botMessage = await state.Action(message, cancellationToken);
             state.StateMachine.LastMessageId = botMessage.MessageId;
 
-            await dialogStateMachine.InsertAsync(state.StateMachine, TimeSpan.FromSeconds(TTL));
+            await stateMachineRepository.InsertAsync(state.StateMachine, TTL);
+
+            return botMessage;
+        }
+
+        static async Task<Message> EditHandler(ITelegramBotClient botClient,
+                                               Message message,
+                                               CancellationToken cancellationToken,
+                                               IPublisher publisher,
+                                               IStateMachineRepository stateMachineRepository,
+                                               IClientRuleRepository clientRuleRepository,
+                                               IClientRepository clientRepository)
+        {
+            var state = new EditStateMachine(publisher,
+                                             botClient,
+                                             clientRuleRepository,
+                                             clientRepository,
+                                             message.Chat.Id,
+                                             message.From.Id,
+                                             null);
+
+            var botMessage = await state.Action(message, cancellationToken);
+            state.StateMachine.LastMessageId = botMessage.MessageId;
+
+            await stateMachineRepository.InsertAsync(state.StateMachine, TTL);
 
             return botMessage;
         }

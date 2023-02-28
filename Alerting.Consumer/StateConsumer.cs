@@ -90,7 +90,7 @@ namespace Alerting.Consumer
                 {
                     ClientId = context.Message.Sender,
                     LastActive = context.SentTime ?? DateTime.Now,
-                    StateType = StateTypeInfo.Alerting
+                    StateType = (int)StateTypeInfo.Alerting
                 });
             }
             else

@@ -88,7 +88,7 @@ namespace Alerting.Controller
                     );
 
                     client.State.LastAlerted = DateTime.Now;
-                    client.State.StateType = StateTypeInfo.Alerting;
+                    client.State.StateType = (int)StateTypeInfo.Alerting;
                     await _clientStates.UpdateAsync(client.State);
                 }
             }
@@ -108,7 +108,7 @@ namespace Alerting.Controller
                                   join r in _clientAlertRules.ToList() on s.ClientId equals r.ClientId
                                   join c in _clients.ToList() on s.ClientId equals c.Id
                                   where s.LastActive > s.LastAlerted &&
-                                        s.StateType == StateTypeInfo.Alerting
+                                        s.StateType == (int)StateTypeInfo.Alerting
                                   select new
                                   {
                                       State = s,
@@ -127,7 +127,7 @@ namespace Alerting.Controller
                             client.Name)
                     );
 
-                    client.State.StateType = StateTypeInfo.OK;
+                    client.State.StateType = (int)StateTypeInfo.OK;
                     await _clientStates.UpdateAsync(client.State);
                 }
             }

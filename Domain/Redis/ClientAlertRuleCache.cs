@@ -1,7 +1,5 @@
 ﻿using Redis.OM.Modeling;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Alerting.Domain.Redis
 {

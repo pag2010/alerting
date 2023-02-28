@@ -41,7 +41,7 @@ namespace Alerting.TelegramBot.Redis
             _publisher = publisher;
         }
 
-        protected override async Task<Message> FinalAction(Message message, CancellationToken cancellationToken)
+        protected override async Task<Message> FinalAction(long chatId, CancellationToken cancellationToken)
         {
             string id;
             if (StateMachine.Parameters.TryGetValue("GUID", out id) && Guid.TryParse(id, out Guid guid))
@@ -51,7 +51,7 @@ namespace Alerting.TelegramBot.Redis
                 StateMachine.State = GetNextState();
 
                 return await _botClient.SendTextMessageAsync(
-                       chatId: message.Chat.Id,
+                       chatId: chatId,
                        text: "Успешно отправлен на разрегистрацию",
                        cancellationToken: cancellationToken);
             }
@@ -61,7 +61,7 @@ namespace Alerting.TelegramBot.Redis
             }
         }
 
-        protected override MessageModel GetMessageModel()
+        protected override Task<MessageModel> GetMessageModel()
         {
             string messageText;
 
@@ -78,7 +78,7 @@ namespace Alerting.TelegramBot.Redis
                     }
             }
 
-            return new MessageModel(messageText, new ForceReplyMarkup());
+            return Task.FromResult(new MessageModel(messageText, new ForceReplyMarkup()));
         }
 
         protected override StateType GetNextState()
@@ -109,10 +109,8 @@ namespace Alerting.TelegramBot.Redis
             return state;
         }
 
-        protected override MessageModel ParseMessage(Message message, CancellationToken cancellationToken)
+        protected override MessageModel ParseMessage(string messageText, CancellationToken cancellationToken)
         {
-            string messageText = message.Text;
-
             switch (StateMachine.State)
             {
                 case StateType.WaitingGuid:

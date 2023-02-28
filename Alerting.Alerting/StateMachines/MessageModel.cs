@@ -7,7 +7,7 @@ namespace Alerting.TelegramBot.StateMachines
         public string Text { get; private set; }
         public IReplyMarkup ReplyMarkup { get; private set; }
 
-        public MessageModel(string text, IReplyMarkup replyMarkup)
+        public MessageModel(string text, IReplyMarkup replyMarkup = null)
         {
             Text = text;
             ReplyMarkup = replyMarkup;

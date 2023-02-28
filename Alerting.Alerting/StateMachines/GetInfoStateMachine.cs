@@ -72,7 +72,7 @@ namespace Alerting.TelegramBot.Dialog
             return state;
         }
 
-        protected override MessageModel GetMessageModel()
+        protected override Task<MessageModel> GetMessageModel()
         {
             string messageText;
 
@@ -88,14 +88,13 @@ namespace Alerting.TelegramBot.Dialog
                         throw new Exception($"Состояние не поддерживается");
                     }
             }
-
-            return new MessageModel(messageText, new ForceReplyMarkup());
+            return Task.FromResult(
+                new MessageModel(messageText, new ForceReplyMarkup())
+                );
         }
 
-        protected override MessageModel ParseMessage(Message message, CancellationToken cancellationToken)
+        protected override MessageModel ParseMessage(string messageText, CancellationToken cancellationToken)
         {
-            string messageText = message.Text;
-
             switch (StateMachine.State)
             {
                 case StateType.WaitingGuid:
@@ -119,7 +118,7 @@ namespace Alerting.TelegramBot.Dialog
             return null;
         }
 
-        protected override async Task<Message> FinalAction(Message message, CancellationToken cancellationToken)
+        protected override async Task<Message> FinalAction(long chatId, CancellationToken cancellationToken)
         {
             string id;
             if (StateMachine.Parameters.TryGetValue("GUID", out id))
@@ -132,7 +131,7 @@ namespace Alerting.TelegramBot.Dialog
                 StateMachine.State = GetNextState();
 
                 return await _botClient.SendTextMessageAsync(
-                       chatId: message.Chat.Id,
+                       chatId: chatId,
                        text: JsonSerializer.Serialize(result, _jsonSerializerOptions),
                        cancellationToken: cancellationToken);
             }

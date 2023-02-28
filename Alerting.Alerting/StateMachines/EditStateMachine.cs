@@ -1,9 +1,13 @@
-﻿using Alerting.TelegramBot.Dialog;
+﻿using Alerting.Domain.DTO.Clients;
+using Alerting.Domain.Repositories.Interfaces;
+using Alerting.Infrastructure.Bus;
+using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Redis;
 using Alerting.TelegramBot.Redis.Enums;
+using Entities.Adapters;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,9 +19,43 @@ namespace Alerting.TelegramBot.StateMachines
 {
     public class EditStateMachine : AbstractStateMachine
     {
-        public EditStateMachine(ITelegramBotClient botClient, StateMachine stateMachine) : base(botClient, stateMachine) { }
+        private readonly IPublisher _publisher;
+        private readonly IClientRuleRepository _clientRuleRepository;
+        private readonly IClientRepository _clientRepository;
+        public EditStateMachine(IPublisher publisher,
+                                ITelegramBotClient botClient,
+                                IClientRuleRepository clientRuleRepository,
+                                IClientRepository clientRepository,
+                                long chatId,
+                                long userId,
+                                long? lastMessageId = null) 
+            : base(botClient, new StateMachine()
+                                {
+                                    ChatId = chatId,
+                                    UserId = userId,
+                                    LastMessageId = lastMessageId,
+                                    State = StateType.Initial,
+                                    Type = StateMachineType.Edit
+                                }) 
+        {
+            _publisher = publisher;
+            _clientRuleRepository = clientRuleRepository;
+            _clientRepository = clientRepository;
+        }
 
-        protected override async Task<Message> FinalAction(Message message, CancellationToken cancellationToken)
+        public EditStateMachine(IPublisher publisher,
+                                ITelegramBotClient botClient,
+                                IClientRuleRepository clientRuleRepository,
+                                IClientRepository clientRepository,
+                                StateMachine stateMachine)
+            : base(botClient, stateMachine)
+        {
+            _publisher = publisher;
+            _clientRuleRepository = clientRuleRepository;
+            _clientRepository = clientRepository;
+        }
+
+        protected override async Task<Message> FinalAction(long chatId, CancellationToken cancellationToken)
         {
             string id;
             if (StateMachine.Parameters.TryGetValue("GUID", out id))
@@ -25,7 +63,7 @@ namespace Alerting.TelegramBot.StateMachines
                 StateMachine.State = GetNextState();
 
                 return await _botClient.SendTextMessageAsync(
-                       chatId: message.Chat.Id,
+                       chatId: chatId,
                        text: JsonSerializer.Serialize(id, _jsonSerializerOptions),
                        cancellationToken: cancellationToken);
             }
@@ -35,7 +73,7 @@ namespace Alerting.TelegramBot.StateMachines
             }
         }
 
-        protected override MessageModel GetMessageModel()
+        protected override async Task<MessageModel> GetMessageModel()
         {
             string messageText;
             InlineKeyboardMarkup inlineKeyboard = null;
@@ -44,16 +82,57 @@ namespace Alerting.TelegramBot.StateMachines
             {
                 case StateType.WaitingGuid:
                     {
-                        messageText = "Выберите GUID";
+                        messageText = "Выберите клиента для изменения";
+                        var clientIds = _clientRuleRepository.GetClientRules(StateMachine.ChatId).Select(cr => cr.ClientId);
+                        var clients = (await _clientRepository.GetClientsAsync()).Where(c => clientIds.Contains(c.Id));
+                        var keyboard = new List<InlineKeyboardButton>();
+
+                        foreach (var client in clients)
+                        {
+                            keyboard.Add(InlineKeyboardButton.WithCallbackData(text: client.Name, callbackData: client.Id.ToString()));
+                        }
                         inlineKeyboard = new(new[]
                         {
-                            new []
-                            {
-                                InlineKeyboardButton.WithCallbackData(text: "1.1", callbackData: "11"),
-                                InlineKeyboardButton.WithCallbackData(text: "1.2", callbackData: "12"),
-                            }
+                            keyboard
                         });
 
+                        break;
+                    }
+                case StateType.WaitingFieldForChange:
+                    {
+                        messageText = "Выберите поле для изменения";
+                        var fields = new Dictionary<string, string>();
+                        fields.Add("Имя", "Name");
+                        fields.Add("Время ожидания до оповещения", "WaitingSeconds");
+                        fields.Add("Интервал оповещений", "AlertInterval");
+                        fields.Add("Сохранить", "Save");
+                        fields.Add("Отмена", "Cancel");
+                       
+                        var keyboard = new List<InlineKeyboardButton>();
+
+                        foreach (var field in fields)
+                        {
+                            keyboard.Add(InlineKeyboardButton.WithCallbackData(text: field.Key, callbackData: field.Value));
+                        }
+                        inlineKeyboard = new(keyboard);
+                        break;
+                    }
+                case StateType.WaitingNewValueForChange:
+                    {
+                        messageText = "Старое значение: {oldValue}\nУкажите новое значение:";
+                        //var hasGuid = StateMachine.Parameters.TryGetValue("GUID", out var guid);
+                        //var hasFieldForChange = StateMachine.Parameters.TryGetValue("GUID", out var guid);
+                        //if (hasGuid)
+                        //{
+                        //    var clientId = Guid.Parse(guid);
+
+                        //    switch
+                        //    var clientRule = _clientRuleRepository.GetClientRules(StateMachine.ChatId)
+                        //        .SingleOrDefault(cr => cr.ClientId == clientId);
+                        //    var client = (await _clientRepository.GetClientsAsync())
+                        //        .Where(c => c.Id == clientId);
+                        //    messageText = "Старое значение: {oldValue}\nУкажите новое значение:";
+                        //}
                         break;
                     }
                 default:
@@ -61,7 +140,7 @@ namespace Alerting.TelegramBot.StateMachines
                         throw new Exception($"Состояние не поддерживается");
                     }
             }
-
+            
             return new MessageModel(messageText, inlineKeyboard);
         }
 
@@ -78,7 +157,12 @@ namespace Alerting.TelegramBot.StateMachines
                     }
                 case StateType.WaitingGuid:
                     {
-                        state = StateType.Final;
+                        state = StateType.WaitingFieldForChange;
+                        break;
+                    }
+                case StateType.WaitingFieldForChange:
+                    {
+                        state = StateType.WaitingNewValueForChange;
                         break;
                     }
                 case StateType.Final:
@@ -93,10 +177,9 @@ namespace Alerting.TelegramBot.StateMachines
             return state;
         }
 
-        protected override MessageModel ParseMessage(Message message, CancellationToken cancellationToken)
+        protected override MessageModel ParseMessage(string messageText,
+            CancellationToken cancellationToken)
         {
-            string messageText = message.Text;
-
             switch (StateMachine.State)
             {
                 case StateType.WaitingGuid:
@@ -107,7 +190,7 @@ namespace Alerting.TelegramBot.StateMachines
                         }
                         else
                         {
-                            return new MessageModel("Укажите верный GUID", new ForceReplyMarkup());
+                            return new MessageModel("Указан неверный GUID");
                         }
                         break;
                     }

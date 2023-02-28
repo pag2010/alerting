@@ -1,11 +1,10 @@
 ﻿using Alerting.Domain.DTO.Clients;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Alerting.Domain.Repositories.Interfaces
 {
-    public interface IClientRepository
+    public interface IClientRuleRepository
     {
-        Task<IQueryable<Client>> GetClientsAsync();
+        IQueryable<ClientRule> GetClientRules(long chatId);
     }
 }

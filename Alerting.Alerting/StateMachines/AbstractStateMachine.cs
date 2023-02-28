@@ -3,7 +3,6 @@ using Alerting.TelegramBot.Redis.Enums;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
 using System.Text.Json;
 using System.Text.Encodings.Web;
@@ -31,10 +30,26 @@ namespace Alerting.TelegramBot.Redis
 
         public StateMachine StateMachine { get; protected set; }
 
-        protected abstract Task<Message> FinalAction(Message message, CancellationToken cancellationToken);
+        protected abstract Task<Message> FinalAction(long chatId, CancellationToken cancellationToken);
 
         public async Task<Message> Action(Message message,
-                                       CancellationToken cancellationToken)
+                                          CancellationToken cancellationToken)
+        {
+            return await SendResponseMessage(new AcceptedMessage(message.Text, message.Chat.Id),
+                cancellationToken);
+        }
+
+        public async Task<Message> Action(CallbackQuery callbackQuery,
+                                          CancellationToken cancellationToken)
+        {
+            return await SendResponseMessage(
+                new AcceptedMessage(callbackQuery.Data, callbackQuery.Message.Chat.Id),
+                cancellationToken
+                );
+        }
+
+        private async Task<Message> SendResponseMessage(AcceptedMessage message ,
+                                                        CancellationToken cancellationToken)
         {
             Message botMessage = null;
 
@@ -43,21 +58,21 @@ namespace Alerting.TelegramBot.Redis
                 case StateType.Initial:
                     {
                         StateMachine.State = GetNextState();
-                        MessageModel messageModel = GetMessageModel();
+                        MessageModel messageModel = await GetMessageModel();
 
                         return await _botClient.SendTextMessageAsync(
-                                           chatId: message.Chat.Id,
+                                           chatId: message.ChatId,
                                            text: messageModel.Text,
                                            replyMarkup: messageModel.ReplyMarkup,
                                            cancellationToken: cancellationToken);
                     }
                 case StateType.Final:
                     {
-                        return await FinalAction(message, cancellationToken);
+                        return await FinalAction(message.ChatId, cancellationToken);
                     }
                 default:
                     {
-                        MessageModel messageModel = ParseMessage(message, cancellationToken);
+                        MessageModel messageModel = ParseMessage(message.Text, cancellationToken);
 
                         if (messageModel == null)
                         {
@@ -66,14 +81,14 @@ namespace Alerting.TelegramBot.Redis
 
                             if (StateMachine.State != StateType.Final)
                             {
-                                messageModel = GetMessageModel();
+                                messageModel = await GetMessageModel();
                             }
                         }
 
                         if (messageModel != null)
                         {
                             botMessage = await _botClient.SendTextMessageAsync(
-                                                   chatId: message.Chat.Id,
+                                                   chatId: message.ChatId,
                                                    text: messageModel.Text,
                                                    replyMarkup: messageModel.ReplyMarkup,
                                                    cancellationToken: cancellationToken);
@@ -88,9 +103,9 @@ namespace Alerting.TelegramBot.Redis
 
         protected abstract StateType GetNextState();
 
-        protected abstract MessageModel GetMessageModel();
+        protected abstract Task<MessageModel> GetMessageModel();
 
-        protected abstract MessageModel ParseMessage(Message message,
-                                               CancellationToken cancellationToken);
+        protected abstract MessageModel ParseMessage(string messageText,
+                                                     CancellationToken cancellationToken);
     }
 }

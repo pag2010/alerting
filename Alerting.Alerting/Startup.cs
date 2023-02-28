@@ -13,6 +13,12 @@ using Alerting.Infrastructure.Redis;
 using Redis.OM;
 using Alerting.TelegramBot.Dialog;
 using Alerting.TelegramBot.Bot;
+using Alerting.TelegramBot.Repository;
+using Alerting.Domain.Repositories.Interfaces;
+using Alerting.Domain.Repositories;
+using Alerting.Domain.DTO.Clients;
+using Alerting.Domain.StorageAdapters.Interfaces;
+using Alerting.TelegramBot.Adapters;
 
 namespace Alerting.Alerting
 {
@@ -62,7 +68,11 @@ namespace Alerting.Alerting
 
             services.AddSingleton(new RedisConnectionProvider(Configuration["Redis"]));
             services.AddHostedService<IndexCreationService<StateMachine>>();
-
+            services.AddScoped<IClientRuleAdapter<ClientRule, ClientAlertRuleCache>, RedisStorageClientRuleAdapter>();
+            services.AddScoped<IClientAdapter<Client, ClientCache>, RedisStorageClientAdapter>();
+            services.AddScoped<IClientRuleRepository, RedisClientRuleRepository>();
+            services.AddScoped<IClientRepository, RedisClientRepository>();
+            services.AddScoped<IStateMachineRepository, RedisStateMachineRepository>();
             services.AddPublisher();
         }
 

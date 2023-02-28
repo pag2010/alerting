@@ -96,30 +96,35 @@ namespace Alerting.TelegramBot.Redis
             return state;
         }
 
-        protected override MessageModel GetMessageModel()
+        protected override Task<MessageModel> GetMessageModel()
         {
             string messageText;
+            IReplyMarkup replyMarkup;
 
             switch (StateMachine.State)
             {
                 case StateType.WaitingName:
                     {
                         messageText = "Укажите Имя";
+                        replyMarkup = new ForceReplyMarkup();
                         break;
                     }
                 case StateType.WaitingWaitingSeconds:
                     {
                         messageText = "Укажите время ожидания до оповещения (сек)";
+                        replyMarkup = new ForceReplyMarkup();
                         break;
                     }
                 case StateType.WaitingAlertInterval:
                     {
                         messageText = "Укажите период повторных оповещений (сек)";
+                        replyMarkup = new ForceReplyMarkup();
                         break;
                     }
                 case StateType.Final:
                     {
                         messageText = "Выполняется регистрация";
+                        replyMarkup = null;
                         break;
                     }
                 default:
@@ -128,13 +133,11 @@ namespace Alerting.TelegramBot.Redis
                     }
             }
 
-            return new MessageModel(messageText, new ForceReplyMarkup());
+            return Task.FromResult(new MessageModel(messageText, replyMarkup));
         }
 
-        protected override MessageModel ParseMessage(Message message, CancellationToken cancellationToken)
+        protected override MessageModel ParseMessage(string messageText, CancellationToken cancellationToken)
         {
-            string messageText = message.Text;
-
             switch (StateMachine.State)
             {
                 case StateType.WaitingName:
@@ -174,26 +177,26 @@ namespace Alerting.TelegramBot.Redis
             return null;
         }
 
-        protected override async Task<Message> FinalAction(Message message, CancellationToken cancellationToken)
+        protected override async Task<Message> FinalAction(long chatId, CancellationToken cancellationToken)
         {
             ClientRegistration client = ParseParameters();
 
             if (client == null)
             {
                 return await _botClient.SendTextMessageAsync(
-                               chatId: message.Chat.Id,
+                               chatId: chatId,
                                text: "Регистрация не завершена. Ошибка в вводе данных",
                                cancellationToken: cancellationToken);
             }
 
             await _publisher.Publish(client);
 
-            MessageModel messageModel = GetMessageModel();
+            MessageModel messageModel = await GetMessageModel();
 
             StateMachine.State = GetNextState();
 
             return await _botClient.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
+                              chatId: chatId,
                               text: messageModel.Text,
                               replyMarkup: messageModel.ReplyMarkup,
                               cancellationToken: cancellationToken);
